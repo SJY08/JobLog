@@ -1,0 +1,152 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
+
+@import "tailwindcss";
+
+@theme {
+    --color-bg: rgb(var(--c-bg));
+    --color-surface: rgb(var(--c-surface));
+    --color-ink: rgb(var(--c-ink));
+    --color-graphite: rgb(var(--c-graphite));
+    --color-mute: rgb(var(--c-mute));
+    --color-line: rgb(var(--c-line));
+    --color-line-soft: rgb(var(--c-line-soft));
+    --color-hover: rgb(var(--c-hover));
+
+    --color-primary: rgb(var(--c-primary));
+    --color-primary-hover: rgb(var(--c-primary-hover));
+    --color-primary-soft: rgb(var(--c-primary-soft));
+
+    --color-success: rgb(var(--c-success));
+    --color-success-soft: rgb(var(--c-success-soft));
+
+    --color-danger: rgb(var(--c-danger));
+    --color-danger-soft: rgb(var(--c-danger-soft));
+
+    --color-warning: rgb(var(--c-warning));
+
+    --font-sans: "Pretendard Variable", "Pretendard", system-ui, sans-serif;
+    --font-serif: "Pretendard Variable", "Pretendard", system-ui, sans-serif;
+    --font-mono: "Pretendard Variable", "Pretendard", system-ui, sans-serif;
+
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --radius-xl: 14px;
+
+    --radius: 6px;
+
+    --shadow-pop: 0 10px 30px -12px rgba(15, 23, 42, 0.25);
+
+    --shadow-sheet: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px -20px rgba(15, 23, 42, 0.3);
+
+    --text-2xs: 11.5px;
+    --text-2xs--line-height: 16px;
+}
+
+:root {
+    --c-bg: 255 255 255;
+    --c-surface: 255 255 255;
+    --c-ink: 17 24 39;
+    --c-graphite: 55 65 81;
+    --c-mute: 107 114 128;
+    --c-line: 229 231 235;
+    --c-line-soft: 241 242 244;
+    --c-hover: 247 248 250;
+
+    --c-primary: 37 99 235;
+    --c-primary-hover: 29 78 216;
+    --c-primary-soft: 239 246 255;
+
+    --c-success: 5 150 105;
+    --c-success-soft: 236 253 245;
+
+    --c-danger: 220 38 38;
+    --c-danger-soft: 254 242 242;
+
+    --c-warning: 180 83 9;
+
+    color-scheme: light;
+}
+
+.dark {
+    --c-bg: 14 17 22;
+    --c-surface: 21 26 33;
+    --c-ink: 232 235 239;
+    --c-graphite: 183 191 201;
+    --c-mute: 124 135 148;
+    --c-line: 35 42 51;
+    --c-line-soft: 28 34 42;
+    --c-hover: 26 32 39;
+
+    --c-primary: 96 165 250;
+    --c-primary-hover: 147 197 253;
+    --c-primary-soft: 17 33 56;
+
+    --c-success: 52 211 153;
+    --c-success-soft: 14 40 34;
+
+    --c-danger: 248 113 113;
+    --c-danger-soft: 44 21 21;
+
+    --c-warning: 251 191 36;
+
+    color-scheme: dark;
+}
+
+html,
+body,
+#root {
+    height: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    background-color: rgb(var(--c-bg));
+    color: rgb(var(--c-ink));
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+}
+
+*:focus-visible {
+    outline: 2px solid rgb(var(--c-primary));
+    outline-offset: 2px;
+}
+
+.thin-scroll::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.thin-scroll::-webkit-scrollbar-thumb {
+    background: rgb(var(--c-line));
+    border-radius: 999px;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    display: none;
+}
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    body {
+        background: #fff;
+        color: #111;
+    }
+
+    .print-sheet {
+        box-shadow: none !important;
+        border: 0 !important;
+        margin: 0 !important;
+        padding: 18mm 16mm !important;
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    @page {
+        size: A4;
+        margin: 0;
+    }
+}
