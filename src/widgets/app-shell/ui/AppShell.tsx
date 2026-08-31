@@ -49,13 +49,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <header className="no-print sticky top-0 z-30 border-b border-line bg-bg/95 backdrop-blur">
                 <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 pt-3.5 sm:px-6">
                     <Link to="/applications" className="flex items-center gap-2">
-                        <span
-                            className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-[13px] font-bold text-white"
-                            aria-hidden="true"
-                        >
-                            J
-                        </span>
-                        <span className="text-[17px] font-bold tracking-tight text-ink">JobLog</span>
+                        <img src="/logo.svg" alt="JobLog" className="h-8 w-auto" />
                     </Link>
 
                     <div className="relative" ref={menuRef}>

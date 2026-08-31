@@ -1,5 +1,5 @@
 <svg
-  viewBox="0 0 160 160"
+  viewBox="0 0 640 160"
   xmlns="http://www.w3.org/2000/svg"
   role="img"
   aria-label="JobLog logo"
@@ -43,4 +43,15 @@
     stroke-linecap="round"
     stroke-linejoin="round"
   />
+
+  <text
+    x="176"
+    y="120"
+    font-family="'Poppins','Pretendard','Segoe UI',sans-serif"
+    font-weight="700"
+    font-size="108"
+    letter-spacing="-1"
+  >
+    <tspan fill="#3f47a7">Job</tspan><tspan fill="#5571ff">Log</tspan>
+  </text>
 </svg>

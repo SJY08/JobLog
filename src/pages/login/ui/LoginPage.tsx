@@ -10,7 +10,7 @@ const POINTS = [
 ]
 
 /**
- * @description 로그인하는 페이지
+ * @description 로그인 페이지
  */
 export function LoginPage() {
     const { user, signInWithGoogle, signingIn } = useAuth()
@@ -25,13 +25,7 @@ export function LoginPage() {
             <div className="grid w-full max-w-250 gap-12 lg:grid-cols-[1.1fr_1fr] lg:gap-20">
                 <div>
                     <div className="flex items-center gap-2">
-                        <span
-                            className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-sm font-bold text-white"
-                            aria-hidden="true"
-                        >
-                            J
-                        </span>
-                        <span className="text-[19px] font-bold tracking-tight text-ink">JobLog</span>
+                        <img src="/logo.svg" alt="JobLog" className="h-20 w-auto" />
                     </div>
 
                     <h1 className="mt-7 text-[32px] font-bold leading-tight tracking-tight text-ink sm:text-[40px]">
@@ -58,7 +52,7 @@ export function LoginPage() {
                     <div className="rounded-xl border border-line bg-surface p-6 sm:p-7">
                         <h2 className="text-[17px] font-semibold text-ink">시작하기</h2>
                         <p className="mt-2 text-[13px] leading-relaxed text-mute">
-                            학교에서 발급받은 구글 계정으로 로그인하세요. 기록은 로그인한 계정에 저장됩니다.
+                            구글 계정으로 간편하게 로그인하세요.
                         </p>
 
                         <button
@@ -79,14 +73,7 @@ export function LoginPage() {
                                 </>
                             )}
                         </button>
-
-                        <p className="mt-4 text-2xs leading-relaxed text-mute">
-                            @dsmhs.kr 계정을 권장합니다. 개인 계정으로 로그인하면 학교 담당 선생님과 기록을 공유할 수
-                            없습니다.
-                        </p>
                     </div>
-
-                    <p className="mt-5 pl-1 text-2xs text-mute">문의 · 취업지원부 3층 상담실 / dmg-career@dsmhs.kr</p>
                 </div>
             </div>
         </div>
@@ -94,7 +81,7 @@ export function LoginPage() {
 }
 
 /**
- * @description 구글 로고를 보여주는 컴포넌트
+ * @description 구글 로고 컴포넌트
  */
 function GoogleMark() {
     return (
