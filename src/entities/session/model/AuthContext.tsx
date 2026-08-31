@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { User } from './types';
 
 const STORAGE_KEY = 'joblog-auth';
@@ -23,15 +23,15 @@ const DEMO_USER: User = {
  * @description 인증 프로바이더 컴포넌트
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [signingIn, setSigningIn] = useState(false);
-
-  useEffect(() => {
+  const [user, setUser] = useState<User | null>(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) setUser(JSON.parse(raw) as User);
-    } catch {}
-  }, []);
+      return raw ? (JSON.parse(raw) as User) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [signingIn, setSigningIn] = useState(false);
 
   const signInWithGoogle = useCallback(async () => {
     setSigningIn(true);
