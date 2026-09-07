@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken"
 import type { VercelRequest } from "@vercel/node"
-import { HttpError } from "./http"
-import { getSupabase } from "./supabase"
+import { HttpError } from "./http.js"
+import { getSupabase } from "./supabase.js"
 
 interface TokenPayload {
     sub: string

@@ -1,4 +1,4 @@
-import { getSupabase } from "./supabase"
+import { getSupabase } from "./supabase.js"
 
 export const FILES_BUCKET = "files"
 const SIGNED_URL_TTL_SECONDS = 60 * 60 // 1시간

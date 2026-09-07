@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
-import { requireUser } from "./_lib/auth"
-import { requireMethod, withErrors } from "./_lib/http"
-import { getSupabase } from "./_lib/supabase"
+import { requireUser } from "./_lib/auth.js"
+import { requireMethod, withErrors } from "./_lib/http.js"
+import { getSupabase } from "./_lib/supabase.js"
 
 const DEFAULT_SECTION_TITLES = ["성장과정", "성격의 장단점", "학교생활", "지원동기 및 입사 후 포부"]
 

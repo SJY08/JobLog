@@ -1,4 +1,4 @@
-import { RAW_REGIONS } from "../../src/entities/region/model/data"
+import { RAW_REGIONS } from "../../src/entities/region/model/data.js"
 
 /**
  * @description 시도명을 줄이는 함수 (src/entities/region/api/regionApi.ts와 동일 로직)

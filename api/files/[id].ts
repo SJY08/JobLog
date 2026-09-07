@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
-import { requireUser } from "../_lib/auth"
-import { FILES_BUCKET, toStoredFile } from "../_lib/files"
-import { HttpError, requireMethod, withErrors } from "../_lib/http"
-import { getSupabase } from "../_lib/supabase"
+import { requireUser } from "../_lib/auth.js"
+import { FILES_BUCKET, toStoredFile } from "../_lib/files.js"
+import { HttpError, requireMethod, withErrors } from "../_lib/http.js"
+import { getSupabase } from "../_lib/supabase.js"
 
 export default withErrors(async (req: VercelRequest, res: VercelResponse) => {
     if (!requireMethod(req, res, ["PATCH", "DELETE"])) return

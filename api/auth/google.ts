@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
-import { signToken, toPublicUser, type UserRow } from "../_lib/auth"
-import { HttpError, requireMethod, withErrors } from "../_lib/http"
-import { getSupabase } from "../_lib/supabase"
+import { signToken, toPublicUser, type UserRow } from "../_lib/auth.js"
+import { HttpError, requireMethod, withErrors } from "../_lib/http.js"
+import { getSupabase } from "../_lib/supabase.js"
 
 interface GoogleUserInfo {
     sub: string

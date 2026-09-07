@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
-import { requireMethod, withErrors } from "../_lib/http"
+import { requireMethod, withErrors } from "../_lib/http.js"
 
 export default withErrors(async (req: VercelRequest, res: VercelResponse) => {
     if (!requireMethod(req, res, ["POST"])) return

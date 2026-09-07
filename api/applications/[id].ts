@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
-import { fromApplicationInput, toApplication } from "../_lib/applications"
-import { requireUser } from "../_lib/auth"
-import { HttpError, requireMethod, withErrors } from "../_lib/http"
-import { getSupabase } from "../_lib/supabase"
+import { fromApplicationInput, toApplication } from "../_lib/applications.js"
+import { requireUser } from "../_lib/auth.js"
+import { HttpError, requireMethod, withErrors } from "../_lib/http.js"
+import { getSupabase } from "../_lib/supabase.js"
 
 export default withErrors(async (req: VercelRequest, res: VercelResponse) => {
     if (!requireMethod(req, res, ["GET", "PATCH"])) return

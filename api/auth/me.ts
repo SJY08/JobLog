@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
-import { requireUser, toPublicUser } from "../_lib/auth"
-import { requireMethod, withErrors } from "../_lib/http"
+import { requireUser, toPublicUser } from "../_lib/auth.js"
+import { requireMethod, withErrors } from "../_lib/http.js"
 
 export default withErrors(async (req: VercelRequest, res: VercelResponse) => {
     if (!requireMethod(req, res, ["GET"])) return
