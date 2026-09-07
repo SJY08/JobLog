@@ -70,8 +70,10 @@ export function ApplicationDetailPage() {
     if (Object.keys(found).length > 0) return;
 
     if (isNew) {
-      const newId = await createApplication(draft);
-      navigate(`/applications/${newId}`, { replace: true });
+      const created = await createApplication(draft);
+      setDraft(created);
+      setSavedAt(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }));
+      navigate(`/applications/${created.id}`, { replace: true });
       return;
     }
     const next = { ...draft, updatedAt: today() };

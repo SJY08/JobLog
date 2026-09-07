@@ -32,7 +32,7 @@ interface RecordsValue {
   applications: Application[];
   loading: boolean;
   getApplication: (id: string) => Application | undefined;
-  createApplication: (data: Application) => Promise<string>;
+  createApplication: (data: Application) => Promise<Application>;
   updateApplication: (id: string, patch: Partial<Application>) => Promise<void>;
   removeApplications: (ids: string[]) => Promise<void>;
 
@@ -98,7 +98,7 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
   const createApplication = useCallback(async (data: Application) => {
     const created = await api.post<Application>('/applications', data);
     setApplications((prev) => [created, ...prev]);
-    return created.id;
+    return created;
   }, []);
 
   const updateApplication = useCallback(async (id: string, patch: Partial<Application>) => {
