@@ -16,7 +16,8 @@ import { CoverLetterPreviewPage } from "@/pages/cover-letter-preview"
  * @description 로그인 가드 컴포넌트
  */
 function Protected({ children }: { children: React.ReactNode }) {
-    const { user } = useAuth()
+    const { user, ready } = useAuth()
+    if (!ready) return null
     if (!user) return <Navigate to="/login" replace />
     return <AppShell>{children}</AppShell>
 }
