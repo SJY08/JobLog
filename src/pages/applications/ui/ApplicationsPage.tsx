@@ -14,7 +14,7 @@ const PAGE_SIZE = 10;
  * @description 지원 기록을 목록으로 보여주는 페이지
  */
 export function ApplicationsPage() {
-  const { applications, removeApplications } = useRecords();
+  const { applications, loading, removeApplications } = useRecords();
   const navigate = useNavigate();
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [selected, setSelected] = useState<string[]>([]);
@@ -133,7 +133,7 @@ export function ApplicationsPage() {
         )}
       </div>
 
-      {pageRows.length > 0 ? (
+      {loading ? null : pageRows.length > 0 ? (
         <>
           <ApplicationList
             rows={pageRows}

@@ -13,8 +13,8 @@ export function CoverLetterEditorPage() {
     useRecords();
   const [savedAt, setSavedAt] = useState<string | null>(null);
 
-  const save = useCallback(() => {
-    saveCoverLetter();
+  const save = useCallback(async () => {
+    await saveCoverLetter();
     setSavedAt(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }));
   }, [saveCoverLetter]);
 

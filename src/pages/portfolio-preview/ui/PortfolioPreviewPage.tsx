@@ -11,8 +11,10 @@ import { dotDate, fileSize } from '@/shared/lib';
  */
 export function PortfolioPreviewPage() {
   const { id = '' } = useParams();
-  const { files } = useRecords();
+  const { files, loading } = useRecords();
   const file = files.find((f) => f.id === id);
+
+  if (loading) return null;
 
   if (!file) {
     return (

@@ -42,19 +42,18 @@ export function ApplicationDetailPage() {
   const location = useLocation();
   const isNew = id === 'new' || location.pathname.endsWith('/applications/new');
   const navigate = useNavigate();
-  const { getApplication, createApplication, updateApplication, removeApplications } = useRecords();
+  const { loading, getApplication, createApplication, updateApplication, removeApplications } = useRecords();
   const original = isNew ? undefined : getApplication(id);
 
   const [draft, setDraft] = useState<Application | null>(isNew ? emptyApplication() : original ?? null);
   const [errors, setErrors] = useState<Errors>({});
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const [notFound, setNotFound] = useState(!isNew && !original);
+  const notFound = !isNew && !loading && !original && !draft;
 
   useEffect(() => {
     if (!isNew && original && !draft) {
       setDraft(original);
-      setNotFound(false);
     }
   }, [isNew, original, draft]);
 
@@ -64,19 +63,19 @@ export function ApplicationDetailPage() {
     return !!original && JSON.stringify(draft) !== JSON.stringify(original);
   }, [draft, original, isNew]);
 
-  const save = useCallback(() => {
+  const save = useCallback(async () => {
     if (!draft) return;
     const found = validate(draft);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
     if (isNew) {
-      const newId = createApplication(draft);
+      const newId = await createApplication(draft);
       navigate(`/applications/${newId}`, { replace: true });
       return;
     }
     const next = { ...draft, updatedAt: today() };
-    updateApplication(next.id, next);
+    await updateApplication(next.id, next);
     setDraft(next);
     setSavedAt(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }));
   }, [draft, isNew, createApplication, updateApplication, navigate]);
@@ -92,6 +91,10 @@ export function ApplicationDetailPage() {
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
+
+  if (!draft && !notFound) {
+    return null;
+  }
 
   if (!draft || notFound) {
     return (

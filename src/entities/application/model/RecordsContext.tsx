@@ -1,13 +1,11 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useAuth } from '@/entities/session';
 import type { CoverLetter, CoverLetterSection } from '@/entities/cover-letter';
 import { SEED_COVER_LETTER } from '@/entities/cover-letter';
 import type { StoredFile } from '@/entities/file';
+import { api } from '@/shared/api';
 import { today, uid } from '@/shared/lib';
-import { SEED_APPLICATIONS } from './seed';
 import type { Application } from './types';
-
-const APP_KEY = 'joblog-applications';
-const CL_KEY = 'joblog-cover-letter';
 
 /**
  * @description 빈 지원 기록을 만드는 함수
@@ -32,15 +30,16 @@ export function emptyApplication(): Application {
 
 interface RecordsValue {
   applications: Application[];
+  loading: boolean;
   getApplication: (id: string) => Application | undefined;
-  createApplication: (data: Application) => string;
-  updateApplication: (id: string, patch: Partial<Application>) => void;
-  removeApplications: (ids: string[]) => void;
+  createApplication: (data: Application) => Promise<string>;
+  updateApplication: (id: string, patch: Partial<Application>) => Promise<void>;
+  removeApplications: (ids: string[]) => Promise<void>;
 
   files: StoredFile[];
-  addFiles: (kind: StoredFile['kind'], list: File[]) => void;
+  addFiles: (kind: StoredFile['kind'], list: File[]) => Promise<void>;
   updateFile: (id: string, patch: Partial<StoredFile>) => void;
-  removeFile: (id: string) => void;
+  removeFile: (id: string) => Promise<void>;
 
   coverLetter: CoverLetter;
   updateCoverLetter: (patch: Partial<Omit<CoverLetter, 'sections'>>) => void;
@@ -48,79 +47,89 @@ interface RecordsValue {
   addSection: (title?: string) => void;
   removeSection: (id: string) => void;
   moveSection: (id: string, dir: -1 | 1) => void;
-  saveCoverLetter: () => void;
+  saveCoverLetter: () => Promise<void>;
 }
 
 const RecordsContext = createContext<RecordsValue | null>(null);
-
-function load<T>(key: string, fallback: T): T {
-  try {
-    const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function persist(key: string, value: unknown) {
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {}
-}
 
 /**
  * @description 지원 기록 프로바이더 컴포넌트
  */
 export function RecordsProvider({ children }: { children: React.ReactNode }) {
-  const [applications, setApplications] = useState<Application[]>(() => load(APP_KEY, SEED_APPLICATIONS));
-  const [coverLetter, setCoverLetter] = useState<CoverLetter>(() => load(CL_KEY, SEED_COVER_LETTER));
+  const { user, ready } = useAuth();
+  const [applications, setApplications] = useState<Application[]>([]);
   const [files, setFiles] = useState<StoredFile[]>([]);
+  const [coverLetter, setCoverLetter] = useState<CoverLetter>(SEED_COVER_LETTER);
+  const [loading, setLoading] = useState(true);
+  const fileTimers = useRef<Record<string, number>>({});
 
-  useEffect(() => persist(APP_KEY, applications), [applications]);
+  useEffect(() => {
+    if (!ready) return;
+    if (!user) {
+      setApplications([]);
+      setFiles([]);
+      setCoverLetter(SEED_COVER_LETTER);
+      setLoading(false);
+      return;
+    }
+    let alive = true;
+    setLoading(true);
+    Promise.all([
+      api.get<{ items: Application[] }>('/applications', { pageSize: 500 }),
+      api.get<StoredFile[]>('/files'),
+      api.get<CoverLetter>('/cover-letter')
+    ])
+      .then(([appsRes, filesRes, cl]) => {
+        if (!alive) return;
+        setApplications(appsRes.items);
+        setFiles(filesRes);
+        setCoverLetter(cl);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [ready, user]);
 
-  const getApplication = useCallback(
-    (id: string) => applications.find((a) => a.id === id),
-    [applications]
-  );
+  const getApplication = useCallback((id: string) => applications.find((a) => a.id === id), [applications]);
 
-  const createApplication = useCallback((data: Application) => {
-    const id = uid('a');
-    setApplications((prev) => [{ ...data, id, updatedAt: today() }, ...prev]);
-    return id;
+  const createApplication = useCallback(async (data: Application) => {
+    const created = await api.post<Application>('/applications', data);
+    setApplications((prev) => [created, ...prev]);
+    return created.id;
   }, []);
 
-  const updateApplication = useCallback((id: string, patch: Partial<Application>) => {
-    setApplications((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch, updatedAt: today() } : a)));
+  const updateApplication = useCallback(async (id: string, patch: Partial<Application>) => {
+    const updated = await api.patch<Application>(`/applications/${id}`, patch);
+    setApplications((prev) => prev.map((a) => (a.id === id ? updated : a)));
   }, []);
 
-  const removeApplications = useCallback((ids: string[]) => {
+  const removeApplications = useCallback(async (ids: string[]) => {
+    await api.del('/applications', { ids: ids.join(',') });
     setApplications((prev) => prev.filter((a) => !ids.includes(a.id)));
   }, []);
 
-  const addFiles = useCallback((kind: StoredFile['kind'], list: File[]) => {
-    const mapped: StoredFile[] = list.map((f) => ({
-      id: uid('f'),
-      kind,
-      label: f.name.replace(/\.[^.]+$/, ''),
-      fileName: f.name,
-      mimeType: f.type || 'application/octet-stream',
-      size: f.size,
-      uploadedAt: today(),
-      url: URL.createObjectURL(f)
-    }));
-    setFiles((prev) => [...mapped, ...prev]);
+  const addFiles = useCallback(async (kind: StoredFile['kind'], list: File[]) => {
+    const formData = new FormData();
+    formData.append('kind', kind);
+    list.forEach((f) => formData.append('file', f));
+    const created = await api.upload<StoredFile[]>('/files', formData);
+    setFiles((prev) => [...created, ...prev]);
   }, []);
 
   const updateFile = useCallback((id: string, patch: Partial<StoredFile>) => {
     setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+    window.clearTimeout(fileTimers.current[id]);
+    fileTimers.current[id] = window.setTimeout(() => {
+      api.patch(`/files/${id}`, patch).catch(() => {});
+    }, 500);
   }, []);
 
-  const removeFile = useCallback((id: string) => {
-    setFiles((prev) => {
-      const target = prev.find((f) => f.id === id);
-      if (target) URL.revokeObjectURL(target.url);
-      return prev.filter((f) => f.id !== id);
-    });
+  const removeFile = useCallback(async (id: string) => {
+    await api.del(`/files/${id}`);
+    setFiles((prev) => prev.filter((f) => f.id !== id));
   }, []);
 
   const updateCoverLetter = useCallback((patch: Partial<Omit<CoverLetter, 'sections'>>) => {
@@ -160,17 +169,15 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const saveCoverLetter = useCallback(() => {
-    setCoverLetter((prev) => {
-      const next = { ...prev, updatedAt: today() };
-      persist(CL_KEY, next);
-      return next;
-    });
-  }, []);
+  const saveCoverLetter = useCallback(async () => {
+    const saved = await api.put<CoverLetter>('/cover-letter', coverLetter);
+    setCoverLetter(saved);
+  }, [coverLetter]);
 
   const value = useMemo(
     () => ({
       applications,
+      loading,
       getApplication,
       createApplication,
       updateApplication,
@@ -189,6 +196,7 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       applications,
+      loading,
       getApplication,
       createApplication,
       updateApplication,
