@@ -5,6 +5,8 @@ import { RecordsProvider } from "@/entities/application"
 import { ThemeProvider } from "@/shared/providers"
 import { AppShell } from "@/widgets/app-shell"
 import { LoginPage } from "@/pages/login"
+import { PrivacyPage } from "@/pages/privacy"
+import { TermsPage } from "@/pages/terms"
 import { ApplicationsPage } from "@/pages/applications"
 import { ApplicationDetailPage } from "@/pages/application-detail"
 import { PortfolioPage } from "@/pages/portfolio"
@@ -33,6 +35,8 @@ export function App() {
                     <BrowserRouter>
                         <Routes>
                             <Route path="/login" element={<LoginPage />} />
+                            <Route path="/privacy" element={<PrivacyPage />} />
+                            <Route path="/terms" element={<TermsPage />} />
                             <Route
                                 path="/applications"
                                 element={
