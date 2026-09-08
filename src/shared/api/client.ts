@@ -36,7 +36,6 @@ interface RequestOptions {
     method?: string
     body?: unknown
     query?: Record<string, string | number | undefined>
-    formData?: FormData
 }
 
 async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
@@ -52,9 +51,7 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     if (token) headers.Authorization = `Bearer ${token}`
 
     let body: BodyInit | undefined
-    if (opts.formData) {
-        body = opts.formData
-    } else if (opts.body !== undefined) {
+    if (opts.body !== undefined) {
         headers["Content-Type"] = "application/json"
         body = JSON.stringify(opts.body)
     }
@@ -73,5 +70,4 @@ export const api = {
     patch: <T>(path: string, body?: unknown) => request<T>(path, { method: "PATCH", body }),
     put: <T>(path: string, body?: unknown) => request<T>(path, { method: "PUT", body }),
     del: <T>(path: string, query?: RequestOptions["query"]) => request<T>(path, { method: "DELETE", query }),
-    upload: <T>(path: string, formData: FormData) => request<T>(path, { method: "POST", formData }),
 }

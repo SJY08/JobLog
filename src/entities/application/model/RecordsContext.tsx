@@ -3,7 +3,7 @@ import { useAuth } from '@/entities/session';
 import type { CoverLetter, CoverLetterSection } from '@/entities/cover-letter';
 import { SEED_COVER_LETTER } from '@/entities/cover-letter';
 import type { StoredFile } from '@/entities/file';
-import { api } from '@/shared/api';
+import { api, uploadToSignedUrl } from '@/shared/api';
 import { today, uid } from '@/shared/lib';
 import type { Application } from './types';
 
@@ -112,10 +112,21 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addFiles = useCallback(async (kind: StoredFile['kind'], list: File[]) => {
-    const formData = new FormData();
-    formData.append('kind', kind);
-    list.forEach((f) => formData.append('file', f));
-    const created = await api.upload<StoredFile[]>('/files', formData);
+    const created: StoredFile[] = [];
+    for (const file of list) {
+      const { storagePath, token } = await api.post<{ storagePath: string; token: string }>('/files/sign', {
+        fileName: file.name
+      });
+      await uploadToSignedUrl(storagePath, token, file);
+      const stored = await api.post<StoredFile>('/files', {
+        kind,
+        fileName: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        size: file.size,
+        storagePath
+      });
+      created.push(stored);
+    }
     setFiles((prev) => [...created, ...prev]);
   }, []);
 

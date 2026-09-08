@@ -1,13 +1,8 @@
-import { randomUUID } from "node:crypto"
-import { readFile } from "node:fs/promises"
 import type { VercelRequest, VercelResponse } from "@vercel/node"
-import formidable from "formidable"
 import { requireUser } from "../_lib/auth.js"
-import { FILES_BUCKET, toStoredFile } from "../_lib/files.js"
+import { toStoredFile } from "../_lib/files.js"
 import { HttpError, requireMethod, withErrors } from "../_lib/http.js"
 import { getSupabase } from "../_lib/supabase.js"
-
-export const config = { api: { bodyParser: false } }
 
 async function list(req: VercelRequest, res: VercelResponse, userId: string) {
     const kind = typeof req.query.kind === "string" ? req.query.kind : ""
@@ -20,45 +15,38 @@ async function list(req: VercelRequest, res: VercelResponse, userId: string) {
     res.status(200).json(await Promise.all((data ?? []).map(toStoredFile)))
 }
 
-async function upload(req: VercelRequest, res: VercelResponse, userId: string) {
-    const form = formidable({ multiples: true })
-    const [fields, files] = await form.parse(req)
+interface CreatePayload {
+    kind?: string
+    fileName?: string
+    mimeType?: string
+    size?: number
+    storagePath?: string
+}
 
-    const kind = Array.isArray(fields.kind) ? fields.kind[0] : fields.kind
-    const picked = files.file ? (Array.isArray(files.file) ? files.file : [files.file]) : []
-    if (!kind || picked.length === 0) throw new HttpError(422, "파일 미첨부")
+async function create(req: VercelRequest, res: VercelResponse, userId: string) {
+    const body = (req.body ?? {}) as CreatePayload
+    const { kind, fileName, mimeType, size, storagePath } = body
+    if (!kind || !fileName || !mimeType || typeof size !== "number" || !storagePath) {
+        throw new HttpError(422, "파일 정보가 올바르지 않습니다.")
+    }
+    if (!storagePath.startsWith(`${userId}/`)) throw new HttpError(403, "권한이 없습니다.")
 
     const supabase = getSupabase()
-    const created = []
-
-    for (const file of picked) {
-        const buffer = await readFile(file.filepath)
-        const fileName = file.originalFilename ?? "file"
-        const storagePath = `${userId}/${randomUUID()}-${fileName}`
-
-        const { error: uploadError } = await supabase.storage
-            .from(FILES_BUCKET)
-            .upload(storagePath, buffer, { contentType: file.mimetype ?? "application/octet-stream" })
-        if (uploadError) throw new HttpError(422, "파일 미첨부")
-
-        const { data, error } = await supabase
-            .from("stored_files")
-            .insert({
-                user_id: userId,
-                kind,
-                label: fileName.replace(/\.[^.]+$/, ""),
-                file_name: fileName,
-                mime_type: file.mimetype ?? "application/octet-stream",
-                size: file.size,
-                storage_path: storagePath,
-            })
-            .select("*")
-            .single()
-        if (error || !data) throw new HttpError(422, "파일 미첨부")
-        created.push(await toStoredFile(data))
-    }
-
-    res.status(201).json(created)
+    const { data, error } = await supabase
+        .from("stored_files")
+        .insert({
+            user_id: userId,
+            kind,
+            label: fileName.replace(/\.[^.]+$/, ""),
+            file_name: fileName,
+            mime_type: mimeType,
+            size,
+            storage_path: storagePath,
+        })
+        .select("*")
+        .single()
+    if (error || !data) throw new HttpError(422, "파일 저장에 실패했습니다.")
+    res.status(201).json(await toStoredFile(data))
 }
 
 export default withErrors(async (req: VercelRequest, res: VercelResponse) => {
@@ -66,5 +54,5 @@ export default withErrors(async (req: VercelRequest, res: VercelResponse) => {
     const user = await requireUser(req)
 
     if (req.method === "GET") return list(req, res, user.id)
-    return upload(req, res, user.id)
+    return create(req, res, user.id)
 })
