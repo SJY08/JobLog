@@ -20,11 +20,12 @@ const SECTION_GAP_PX = 36;
 const PAGE_SPREAD_GAP_PX = 24;
 const SWIPE_DISTANCE = 60;
 const SWIPE_VELOCITY = 500;
+const VIEWER_BOTTOM_RESERVED_PX = 96;
 
 interface Chunk {
   sectionIndex: number;
   text: string;
-  continuation: boolean;
+  showHeader: boolean;
 }
 
 const slideVariants = {
@@ -68,27 +69,34 @@ export function CoverLetterPreviewPage() {
     titleEl.appendChild(badge);
     titleEl.appendChild(titleText);
     const bodyEl = document.createElement('p');
-    bodyEl.className = 'mt-3 whitespace-pre-wrap text-[15px] leading-[1.95] text-neutral-700';
     section.appendChild(titleEl);
     section.appendChild(bodyEl);
     host.appendChild(section);
     document.body.appendChild(host);
 
-    const measure = (label: string, title: string, continuation: boolean, bodyText: string) => {
-      badge.textContent = label;
-      titleText.textContent = continuation ? `${title} (계속)` : title;
+    const measure = (label: string, title: string | null, bodyText: string) => {
+      if (title === null) {
+        titleEl.style.display = 'none';
+      } else {
+        titleEl.style.display = '';
+        badge.textContent = label;
+        titleText.textContent = title;
+      }
+      bodyEl.className = title === null
+        ? 'whitespace-pre-wrap text-[15px] leading-[1.95] text-neutral-700'
+        : 'mt-3 whitespace-pre-wrap text-[15px] leading-[1.95] text-neutral-700';
       bodyEl.textContent = bodyText;
       bodyEl.style.display = bodyText ? '' : 'none';
       return section.getBoundingClientRect().height;
     };
 
-    const fitLength = (label: string, title: string, continuation: boolean, text: string, maxHeight: number) => {
+    const fitLength = (label: string, title: string | null, text: string, maxHeight: number) => {
       let lo = 0;
       let hi = text.length;
       let best = 0;
       while (lo <= hi) {
         const mid = (lo + hi) >> 1;
-        const height = measure(label, title, continuation, text.slice(0, mid));
+        const height = measure(label, title, text.slice(0, mid));
         if (height <= maxHeight) {
           best = mid;
           lo = mid + 1;
@@ -111,14 +119,15 @@ export function CoverLetterPreviewPage() {
         const label = String(sectionIndex + 1).padStart(2, '0');
         const title = sec.title || '제목 없는 항목';
         let remaining = sec.body;
-        let continuation = false;
+        let isFirstChunk = true;
 
         for (;;) {
+          const chunkTitle = isFirstChunk ? title : null;
           const available = PAGE_CONTENT_HEIGHT_PX - used - SECTION_GAP_PX;
-          const fullHeight = measure(label, title, continuation, remaining);
+          const fullHeight = measure(label, chunkTitle, remaining);
 
           if (fullHeight <= available) {
-            result[pageIndex].push({ sectionIndex, text: remaining, continuation });
+            result[pageIndex].push({ sectionIndex, text: remaining, showHeader: isFirstChunk });
             used += SECTION_GAP_PX + fullHeight;
             break;
           }
@@ -130,12 +139,12 @@ export function CoverLetterPreviewPage() {
               used = 0;
               continue;
             }
-            result[pageIndex].push({ sectionIndex, text: remaining, continuation });
+            result[pageIndex].push({ sectionIndex, text: remaining, showHeader: isFirstChunk });
             used += SECTION_GAP_PX + fullHeight;
             break;
           }
 
-          let n = fitLength(label, title, continuation, remaining, available);
+          let n = fitLength(label, chunkTitle, remaining, available);
 
           if (n === 0) {
             if (used > 0) {
@@ -148,11 +157,11 @@ export function CoverLetterPreviewPage() {
           }
 
           const chunkText = remaining.slice(0, n);
-          const chunkHeight = measure(label, title, continuation, chunkText);
-          result[pageIndex].push({ sectionIndex, text: chunkText, continuation });
+          const chunkHeight = measure(label, chunkTitle, chunkText);
+          result[pageIndex].push({ sectionIndex, text: chunkText, showHeader: isFirstChunk });
           used += SECTION_GAP_PX + chunkHeight;
           remaining = remaining.slice(n);
-          continuation = true;
+          isFirstChunk = false;
 
           if (remaining.length === 0) break;
 
@@ -197,17 +206,28 @@ export function CoverLetterPreviewPage() {
     setCurrent((prev) => Math.min(Math.floor(prev / perView) * perView, Math.max(0, pages.length - 1)));
   }, [perView, pages.length]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = stageRef.current;
     if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width ?? 0;
-      if (width <= 0) return;
-      const perSlot = perView === 2 ? (width - PAGE_SPREAD_GAP_PX) / 2 : width;
-      setScale(Math.min(1, perSlot / PAGE_WIDTH_PX));
-    });
+
+    const recompute = () => {
+      const rect = el.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      const perSlot = perView === 2 ? (rect.width - PAGE_SPREAD_GAP_PX) / 2 : rect.width;
+      const availableHeight = Math.max(240, window.innerHeight - rect.top - VIEWER_BOTTOM_RESERVED_PX);
+      const scaleByWidth = perSlot / PAGE_WIDTH_PX;
+      const scaleByHeight = availableHeight / PAGE_HEIGHT_PX;
+      setScale(Math.min(1, scaleByWidth, scaleByHeight));
+    };
+
+    recompute();
+    const ro = new ResizeObserver(recompute);
     ro.observe(el);
-    return () => ro.disconnect();
+    window.addEventListener('resize', recompute);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', recompute);
+    };
   }, [perView]);
 
   const go = useCallback(
@@ -495,15 +515,20 @@ function HeaderBlock({ coverLetter }: { coverLetter: CoverLetter }) {
 function ChunkBlock({ chunk, section }: { chunk: Chunk; section: CoverLetterSection }) {
   return (
     <section className="break-inside-avoid">
-      <h3 className="text-[16px] font-semibold text-neutral-900">
-        <span className="mr-2 text-2xs font-normal tabular-nums text-neutral-500">
-          {String(chunk.sectionIndex + 1).padStart(2, '0')}
-        </span>
-        {section.title || '제목 없는 항목'}
-        {chunk.continuation && <span className="ml-1.5 text-[13px] font-normal text-neutral-400">(계속)</span>}
-      </h3>
+      {chunk.showHeader && (
+        <h3 className="text-[16px] font-semibold text-neutral-900">
+          <span className="mr-2 text-2xs font-normal tabular-nums text-neutral-500">
+            {String(chunk.sectionIndex + 1).padStart(2, '0')}
+          </span>
+          {section.title || '제목 없는 항목'}
+        </h3>
+      )}
       {chunk.text && (
-        <p className="mt-3 whitespace-pre-wrap text-[15px] leading-[1.95] text-neutral-700">{chunk.text}</p>
+        <p
+          className={`whitespace-pre-wrap text-[15px] leading-[1.95] text-neutral-700 ${chunk.showHeader ? 'mt-3' : ''}`}
+        >
+          {chunk.text}
+        </p>
       )}
     </section>
   );
