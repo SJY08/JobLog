@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeftIcon, CheckIcon, ChevronDownIcon, ChevronUpIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeftIcon, ChevronDownIcon, ChevronUpIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useRecords } from '@/entities/application';
 import { Button, Field, IconButton, TextInput, inputClass } from '@/shared/ui';
 import { countChars, useSaveShortcut } from '@/shared/lib';
@@ -9,14 +9,21 @@ import { countChars, useSaveShortcut } from '@/shared/lib';
  * @description 자기소개서를 작성하는 페이지
  */
 export function CoverLetterEditorPage() {
+  const navigate = useNavigate();
   const { coverLetter, updateCoverLetter, updateSection, addSection, removeSection, moveSection, saveCoverLetter } =
     useRecords();
-  const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const save = useCallback(async () => {
-    await saveCoverLetter();
-    setSavedAt(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }));
-  }, [saveCoverLetter]);
+    if (saving) return;
+    setSaving(true);
+    try {
+      await saveCoverLetter();
+      navigate('/portfolio');
+    } finally {
+      setSaving(false);
+    }
+  }, [saving, saveCoverLetter, navigate]);
 
   useSaveShortcut(save);
 
@@ -41,17 +48,11 @@ export function CoverLetterEditorPage() {
           </p>
         </div>
         <div className="flex items-center gap-2.5">
-          {savedAt && (
-            <span className="inline-flex items-center gap-1 text-2xs text-success">
-              <CheckIcon className="h-3.5 w-3.5" aria-hidden="true" />
-              {savedAt} 저장됨
-            </span>
-          )}
           <Link to="/cover-letter/preview">
             <Button variant="outline">미리보기</Button>
           </Link>
-          <Button variant="primary" onClick={save}>
-            저장
+          <Button variant="primary" onClick={save} disabled={saving}>
+            {saving ? '저장 중…' : '저장'}
           </Button>
         </div>
       </div>

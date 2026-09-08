@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeftIcon, CheckIcon, Trash2Icon } from 'lucide-react';
+import { ArrowLeftIcon, Trash2Icon } from 'lucide-react';
 import {
   APPLY_STATUSES,
   PLATFORMS,
@@ -47,7 +47,7 @@ export function ApplicationDetailPage() {
 
   const [draft, setDraft] = useState<Application | null>(isNew ? emptyApplication() : original ?? null);
   const [errors, setErrors] = useState<Errors>({});
-  const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const notFound = !isNew && !loading && !original && !draft;
 
@@ -64,23 +64,23 @@ export function ApplicationDetailPage() {
   }, [draft, original, isNew]);
 
   const save = useCallback(async () => {
-    if (!draft) return;
+    if (!draft || saving) return;
     const found = validate(draft);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
-    if (isNew) {
-      const created = await createApplication(draft);
-      setDraft(created);
-      setSavedAt(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }));
-      navigate(`/applications/${created.id}`, { replace: true });
-      return;
+    setSaving(true);
+    try {
+      if (isNew) {
+        await createApplication(draft);
+      } else {
+        await updateApplication(draft.id, { ...draft, updatedAt: today() });
+      }
+      navigate('/applications');
+    } finally {
+      setSaving(false);
     }
-    const next = { ...draft, updatedAt: today() };
-    await updateApplication(next.id, next);
-    setDraft(next);
-    setSavedAt(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }));
-  }, [draft, isNew, createApplication, updateApplication, navigate]);
+  }, [draft, isNew, saving, createApplication, updateApplication, navigate]);
 
   useSaveShortcut(save, !!draft);
 
@@ -138,15 +138,9 @@ export function ApplicationDetailPage() {
           </p>
         </div>
         <div className="flex items-center gap-2.5">
-          {!isNew && savedAt && !dirty && (
-            <span className="inline-flex items-center gap-1 text-2xs text-success">
-              <CheckIcon className="h-3.5 w-3.5" aria-hidden="true" />
-              {savedAt} 저장됨
-            </span>
-          )}
-          {dirty && <span className="text-2xs text-mute">저장되지 않은 변경사항</span>}
-          <Button variant="primary" onClick={save} disabled={!isNew && !dirty}>
-            저장
+          {dirty && !saving && <span className="text-2xs text-mute">저장되지 않은 변경사항</span>}
+          <Button variant="primary" onClick={save} disabled={saving || (!isNew && !dirty)}>
+            {saving ? '저장 중…' : '저장'}
           </Button>
           {!isNew && (
             <IconButton label="이 기록 삭제" tone="danger" onClick={() => setConfirming(true)} className="border border-line">
