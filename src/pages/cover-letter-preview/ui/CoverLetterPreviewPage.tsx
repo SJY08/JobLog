@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, type PanInfo } from 'framer-motion';
-import { ArrowLeftIcon, ChevronLeftIcon, ChevronRightIcon, PrinterIcon } from 'lucide-react';
+import { ArrowLeftIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, LoaderIcon } from 'lucide-react';
 import { useRecords } from '@/entities/application';
 import type { CoverLetter, CoverLetterSection } from '@/entities/cover-letter';
 import { Button } from '@/shared/ui';
@@ -186,7 +186,9 @@ export function CoverLetterPreviewPage() {
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(1);
   const [scale, setScale] = useState(1);
+  const [downloading, setDownloading] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
+  const exportRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
@@ -259,20 +261,31 @@ export function CoverLetterPreviewPage() {
     else if (info.offset.x > SWIPE_DISTANCE || info.velocity.x > SWIPE_VELOCITY) go(-1);
   }
 
-  const handlePrint = useCallback(() => {
-    const name = sanitizeFileName(coverLetter.applicantName) || '이름미입력';
-    const position = sanitizeFileName(coverLetter.targetPosition);
-    const fileName = position ? `[${position}]${name}_자기소개서` : `${name}_자기소개서`;
+  const handleDownload = useCallback(async () => {
+    if (downloading || pages.length === 0) return;
+    setDownloading(true);
+    try {
+      const name = sanitizeFileName(coverLetter.applicantName) || '이름미입력';
+      const position = sanitizeFileName(coverLetter.targetPosition);
+      const fileName = position ? `[${position}]${name}_자기소개서` : `${name}_자기소개서`;
 
-    const prevTitle = document.title;
-    document.title = fileName;
-    const restoreTitle = () => {
-      document.title = prevTitle;
-      window.removeEventListener('afterprint', restoreTitle);
-    };
-    window.addEventListener('afterprint', restoreTitle);
-    window.print();
-  }, [coverLetter.applicantName, coverLetter.targetPosition]);
+      const [{ jsPDF }, { default: html2canvas }] = await Promise.all([import('jspdf'), import('html2canvas-pro')]);
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+
+      for (let i = 0; i < pages.length; i += 1) {
+        const node = exportRefs.current[i];
+        if (!node) continue;
+        const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff' });
+        const imgData = canvas.toDataURL('image/jpeg', 0.92);
+        if (i > 0) pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, 0, PAGE_WIDTH_MM, PAGE_HEIGHT_MM);
+      }
+
+      pdf.save(`${fileName}.pdf`);
+    } finally {
+      setDownloading(false);
+    }
+  }, [downloading, pages, coverLetter.applicantName, coverLetter.targetPosition]);
 
   const visible = Array.from({ length: perView }, (_, i) => current + i).filter((i) => i < pages.length);
   const atStart = current === 0;
@@ -312,13 +325,17 @@ export function CoverLetterPreviewPage() {
               {pages.length > 1 && ` · 총 ${pages.length}페이지`}
             </p>
           </div>
-          <Button variant="primary" onClick={handlePrint}>
-            <PrinterIcon className="h-4 w-4" aria-hidden="true" />
-            PDF로 저장 · 인쇄
+          <Button variant="primary" onClick={handleDownload} disabled={downloading}>
+            {downloading ? (
+              <LoaderIcon className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <DownloadIcon className="h-4 w-4" aria-hidden="true" />
+            )}
+            {downloading ? 'PDF 만드는 중…' : 'PDF 다운로드'}
           </Button>
         </div>
         <p className="mt-3 text-2xs text-mute">
-          인쇄 창에서 대상을 &lsquo;PDF로 저장&rsquo;으로 선택하면 A4 규격 파일로 내려받을 수 있습니다.
+          미리보기에 보이는 그대로 A4 여러 장으로 나뉜 PDF 파일이 바로 내려받아집니다.
         </p>
       </div>
 
@@ -435,17 +452,29 @@ export function CoverLetterPreviewPage() {
         )}
       </div>
 
-      {/* 인쇄 전용: 전체 페이지를 순서대로 (block 컨테이너 — flex 안에서는 break-after가 무시됨) */}
-      <div className="print-only">
+      {/* PDF 다운로드용: 실제 크기 그대로 화면 밖에 렌더링해 캡처 대상으로 사용 */}
+      <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: -99999 }}>
         {pages.map((page, pageIdx) => (
-          <article key={pageIdx} className="print-sheet" style={{ width: PAGE_WIDTH_PX, padding: PAGE_PADDING_PX }}>
+          <div
+            key={pageIdx}
+            ref={(el) => {
+              exportRefs.current[pageIdx] = el;
+            }}
+            style={{
+              width: PAGE_WIDTH_PX,
+              height: PAGE_HEIGHT_PX,
+              padding: PAGE_PADDING_PX,
+              background: '#ffffff',
+              overflow: 'hidden'
+            }}
+          >
             <PageContent
               page={page}
               coverLetter={coverLetter}
               isFirstPage={pageIdx === 0}
               isLastPage={pageIdx === pages.length - 1}
             />
-          </article>
+          </div>
         ))}
       </div>
     </>

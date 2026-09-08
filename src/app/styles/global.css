@@ -126,40 +126,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     display: none;
 }
 
-.print-only {
-    display: none;
-}
-
 @media print {
     .no-print {
         display: none !important;
     }
 
-    .print-only {
-        display: block;
-    }
-
     body {
         background: #fff;
         color: #111;
-    }
-
-    .print-sheet {
-        box-shadow: none !important;
-        border: 0 !important;
-        margin: 0 !important;
-        padding: 20mm !important;
-        width: 100% !important;
-        height: auto !important;
-        max-width: none !important;
-    }
-
-    .print-sheet:not(:last-of-type) {
-        break-after: page;
-    }
-
-    @page {
-        size: A4;
-        margin: 0;
     }
 }
