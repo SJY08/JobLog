@@ -21,12 +21,7 @@ export default defineConfig({
                 enabled: true,
             },
 
-            includeAssets: [
-                "icons/favicon.ico",
-                "icons/icon-192.png",
-                "icons/icon-512.png",
-                "splash/apple-touch-icon.png",
-            ],
+            includeAssets: ["favicon.svg", "icons/icon-192.png", "icons/icon-512.png", "splash/apple-touch-icon.png"],
 
             manifest: {
                 name: "JobLog",
