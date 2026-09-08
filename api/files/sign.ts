@@ -10,8 +10,10 @@ export default withErrors(async (req: VercelRequest, res: VercelResponse) => {
     const user = await requireUser(req)
 
     const body = (req.body ?? {}) as { fileName?: string }
-    const fileName = typeof body.fileName === "string" && body.fileName.trim() ? body.fileName.trim() : "file"
-    const storagePath = `${user.id}/${randomUUID()}-${fileName}`
+    const fileName = typeof body.fileName === "string" ? body.fileName.trim() : ""
+    const extMatch = /\.[a-zA-Z0-9]{1,10}$/.exec(fileName)
+    const ext = extMatch ? extMatch[0].toLowerCase() : ""
+    const storagePath = `${user.id}/${randomUUID()}${ext}`
 
     const supabase = getSupabase()
     const { data, error } = await supabase.storage.from(FILES_BUCKET).createSignedUploadUrl(storagePath)
