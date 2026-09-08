@@ -8,5 +8,5 @@ export default withErrors(async (req: VercelRequest, res: VercelResponse) => {
     await requireUser(req)
 
     const q = typeof req.query.q === "string" ? req.query.q : ""
-    res.status(200).json(searchRegions(q))
+    res.status(200).json(await searchRegions(q))
 })
