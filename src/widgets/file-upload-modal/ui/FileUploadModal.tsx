@@ -7,7 +7,7 @@ import { Button, Field, IconButton, Modal, SelectInput } from '@/shared/ui';
 interface FileUploadModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (kind: FileKind, files: File[]) => void;
+  onSubmit: (kind: FileKind, files: File[]) => Promise<void>;
 }
 
 /**
@@ -17,6 +17,7 @@ export function FileUploadModal({ open, onClose, onSubmit }: FileUploadModalProp
   const [kind, setKind] = useState<FileKind>('이력서');
   const [picked, setPicked] = useState<File[]>([]);
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -24,16 +25,24 @@ export function FileUploadModal({ open, onClose, onSubmit }: FileUploadModalProp
       setKind('이력서');
       setPicked([]);
       setError('');
+      setSubmitting(false);
     }
   }, [open]);
 
-  function submit() {
+  async function submit() {
     if (picked.length === 0) {
       setError('추가할 파일을 선택해 주세요.');
       return;
     }
-    onSubmit(kind, picked);
-    onClose();
+    setSubmitting(true);
+    try {
+      await onSubmit(kind, picked);
+      onClose();
+    } catch {
+      setError('업로드에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -47,8 +56,8 @@ export function FileUploadModal({ open, onClose, onSubmit }: FileUploadModalProp
           <Button variant="ghost" onClick={onClose}>
             취소
           </Button>
-          <Button variant="primary" onClick={submit}>
-            추가하기
+          <Button variant="primary" onClick={submit} disabled={submitting}>
+            {submitting ? '업로드 중…' : '추가하기'}
           </Button>
         </>
       }
