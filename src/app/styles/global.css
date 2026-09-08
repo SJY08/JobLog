@@ -142,7 +142,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         margin: 0 !important;
         padding: 18mm 16mm !important;
         width: 100% !important;
+        height: auto !important;
         max-width: none !important;
+    }
+
+    .print-sheet:not(:last-of-type) {
+        break-after: page;
     }
 
     @page {
