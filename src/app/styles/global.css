@@ -126,9 +126,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     display: none;
 }
 
+.print-only {
+    display: none;
+}
+
 @media print {
     .no-print {
         display: none !important;
+    }
+
+    .print-only {
+        display: block;
     }
 
     body {
@@ -140,7 +148,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         box-shadow: none !important;
         border: 0 !important;
         margin: 0 !important;
-        padding: 18mm 16mm !important;
+        padding: 20mm !important;
         width: 100% !important;
         height: auto !important;
         max-width: none !important;

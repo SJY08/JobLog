@@ -1,6 +1,7 @@
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, PrinterIcon } from 'lucide-react';
+import { AnimatePresence, motion, type PanInfo } from 'framer-motion';
+import { ArrowLeftIcon, ChevronLeftIcon, ChevronRightIcon, PrinterIcon } from 'lucide-react';
 import { useRecords } from '@/entities/application';
 import type { CoverLetter, CoverLetterSection } from '@/entities/cover-letter';
 import { Button } from '@/shared/ui';
@@ -13,8 +14,24 @@ const PAGE_PADDING_MM = 20;
 const PAGE_WIDTH_PX = PAGE_WIDTH_MM * MM_TO_PX;
 const PAGE_HEIGHT_PX = PAGE_HEIGHT_MM * MM_TO_PX;
 const PAGE_PADDING_PX = PAGE_PADDING_MM * MM_TO_PX;
+const PAGE_CONTENT_WIDTH_PX = PAGE_WIDTH_PX - PAGE_PADDING_PX * 2;
 const PAGE_CONTENT_HEIGHT_PX = PAGE_HEIGHT_PX - PAGE_PADDING_PX * 2;
 const SECTION_GAP_PX = 36;
+const PAGE_SPREAD_GAP_PX = 24;
+const SWIPE_DISTANCE = 60;
+const SWIPE_VELOCITY = 500;
+
+interface Chunk {
+  sectionIndex: number;
+  text: string;
+  continuation: boolean;
+}
+
+const slideVariants = {
+  enter: (direction: number) => ({ x: direction > 0 ? 48 : -48, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (direction: number) => ({ x: direction > 0 ? -48 : 48, opacity: 0 })
+};
 
 /**
  * @description 자기소개서를 미리보는 페이지
@@ -27,36 +44,200 @@ export function CoverLetterPreviewPage() {
 
   const headerRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
-  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const [pages, setPages] = useState<string[][]>([]);
+  const [pages, setPages] = useState<Chunk[][]>([]);
 
   useLayoutEffect(() => {
     const headerHeight = headerRef.current?.offsetHeight ?? 0;
     const footerHeight = footerRef.current?.offsetHeight ?? 0;
 
-    const result: string[][] = [[]];
-    let pageIndex = 0;
-    let used = headerHeight;
+    const host = document.createElement('div');
+    host.style.position = 'fixed';
+    host.style.top = '0px';
+    host.style.left = '-99999px';
+    host.style.width = `${PAGE_CONTENT_WIDTH_PX}px`;
+    host.style.visibility = 'hidden';
+    host.style.pointerEvents = 'none';
 
-    coverLetter.sections.forEach((section) => {
-      const height = (sectionRefs.current[section.id]?.offsetHeight ?? 0) + SECTION_GAP_PX;
-      const isFirstOnPage = result[pageIndex].length === 0;
-      if (!isFirstOnPage && used + height > PAGE_CONTENT_HEIGHT_PX) {
+    const section = document.createElement('section');
+    section.className = 'break-inside-avoid';
+    const titleEl = document.createElement('h3');
+    titleEl.className = 'text-[16px] font-semibold text-neutral-900';
+    const badge = document.createElement('span');
+    badge.className = 'mr-2 text-2xs font-normal tabular-nums text-neutral-500';
+    const titleText = document.createTextNode('');
+    titleEl.appendChild(badge);
+    titleEl.appendChild(titleText);
+    const bodyEl = document.createElement('p');
+    bodyEl.className = 'mt-3 whitespace-pre-wrap text-[15px] leading-[1.95] text-neutral-700';
+    section.appendChild(titleEl);
+    section.appendChild(bodyEl);
+    host.appendChild(section);
+    document.body.appendChild(host);
+
+    const measure = (label: string, title: string, continuation: boolean, bodyText: string) => {
+      badge.textContent = label;
+      titleText.textContent = continuation ? `${title} (계속)` : title;
+      bodyEl.textContent = bodyText;
+      bodyEl.style.display = bodyText ? '' : 'none';
+      return section.getBoundingClientRect().height;
+    };
+
+    const fitLength = (label: string, title: string, continuation: boolean, text: string, maxHeight: number) => {
+      let lo = 0;
+      let hi = text.length;
+      let best = 0;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        const height = measure(label, title, continuation, text.slice(0, mid));
+        if (height <= maxHeight) {
+          best = mid;
+          lo = mid + 1;
+        } else {
+          hi = mid - 1;
+        }
+      }
+      while (best > 0 && best < text.length && /[A-Za-z0-9]/.test(text[best - 1]) && /[A-Za-z0-9]/.test(text[best])) {
+        best -= 1;
+      }
+      return best;
+    };
+
+    try {
+      const result: Chunk[][] = [[]];
+      let pageIndex = 0;
+      let used = headerHeight;
+
+      coverLetter.sections.forEach((sec, sectionIndex) => {
+        const label = String(sectionIndex + 1).padStart(2, '0');
+        const title = sec.title || '제목 없는 항목';
+        let remaining = sec.body;
+        let continuation = false;
+
+        for (;;) {
+          const available = PAGE_CONTENT_HEIGHT_PX - used - SECTION_GAP_PX;
+          const fullHeight = measure(label, title, continuation, remaining);
+
+          if (fullHeight <= available) {
+            result[pageIndex].push({ sectionIndex, text: remaining, continuation });
+            used += SECTION_GAP_PX + fullHeight;
+            break;
+          }
+
+          if (remaining.length === 0) {
+            if (used > 0) {
+              pageIndex += 1;
+              result[pageIndex] = [];
+              used = 0;
+              continue;
+            }
+            result[pageIndex].push({ sectionIndex, text: remaining, continuation });
+            used += SECTION_GAP_PX + fullHeight;
+            break;
+          }
+
+          let n = fitLength(label, title, continuation, remaining, available);
+
+          if (n === 0) {
+            if (used > 0) {
+              pageIndex += 1;
+              result[pageIndex] = [];
+              used = 0;
+              continue;
+            }
+            n = 1;
+          }
+
+          const chunkText = remaining.slice(0, n);
+          const chunkHeight = measure(label, title, continuation, chunkText);
+          result[pageIndex].push({ sectionIndex, text: chunkText, continuation });
+          used += SECTION_GAP_PX + chunkHeight;
+          remaining = remaining.slice(n);
+          continuation = true;
+
+          if (remaining.length === 0) break;
+
+          pageIndex += 1;
+          result[pageIndex] = [];
+          used = 0;
+        }
+      });
+
+      if (used + SECTION_GAP_PX + footerHeight > PAGE_CONTENT_HEIGHT_PX && result[pageIndex].length > 0) {
         pageIndex += 1;
         result[pageIndex] = [];
-        used = 0;
       }
-      result[pageIndex].push(section.id);
-      used += height;
-    });
 
-    if (used + footerHeight > PAGE_CONTENT_HEIGHT_PX && result[pageIndex].length > 0) {
-      pageIndex += 1;
-      result[pageIndex] = [];
+      setPages(result);
+    } finally {
+      document.body.removeChild(host);
     }
-
-    setPages(result);
   }, [coverLetter]);
+
+  const [isWide, setIsWide] = useState(false);
+  const [current, setCurrent] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const [scale, setScale] = useState(1);
+  const stageRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const update = () => setIsWide(mq.matches);
+    update();
+    if (typeof mq.addEventListener === 'function') mq.addEventListener('change', update);
+    else mq.addListener(update);
+    return () => {
+      if (typeof mq.removeEventListener === 'function') mq.removeEventListener('change', update);
+      else mq.removeListener(update);
+    };
+  }, []);
+
+  const perView = isWide ? 2 : 1;
+
+  useEffect(() => {
+    setCurrent((prev) => Math.min(Math.floor(prev / perView) * perView, Math.max(0, pages.length - 1)));
+  }, [perView, pages.length]);
+
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? 0;
+      if (width <= 0) return;
+      const perSlot = perView === 2 ? (width - PAGE_SPREAD_GAP_PX) / 2 : width;
+      setScale(Math.min(1, perSlot / PAGE_WIDTH_PX));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [perView]);
+
+  const go = useCallback(
+    (delta: number) => {
+      setDirection(delta);
+      setCurrent((prev) => {
+        const next = prev + delta * perView;
+        if (next < 0) return 0;
+        if (next > pages.length - 1) return prev;
+        return next;
+      });
+    },
+    [perView, pages.length]
+  );
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'ArrowRight') go(1);
+      if (e.key === 'ArrowLeft') go(-1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [go]);
+
+  function handleDragEnd(_: unknown, info: PanInfo) {
+    if (info.offset.x < -SWIPE_DISTANCE || info.velocity.x < -SWIPE_VELOCITY) go(1);
+    else if (info.offset.x > SWIPE_DISTANCE || info.velocity.x > SWIPE_VELOCITY) go(-1);
+  }
 
   const handlePrint = useCallback(() => {
     const name = sanitizeFileName(coverLetter.applicantName) || '이름미입력';
@@ -72,6 +253,19 @@ export function CoverLetterPreviewPage() {
     window.addEventListener('afterprint', restoreTitle);
     window.print();
   }, [coverLetter.applicantName, coverLetter.targetPosition]);
+
+  const visible = Array.from({ length: perView }, (_, i) => current + i).filter((i) => i < pages.length);
+  const atStart = current === 0;
+  const atEnd = current + perView >= pages.length;
+  const pageLabel =
+    pages.length === 0
+      ? '0 / 0 페이지'
+      : visible.length > 1
+        ? `${visible[0] + 1}–${visible[visible.length - 1] + 1} / ${pages.length} 페이지`
+        : `${visible[0] + 1} / ${pages.length} 페이지`;
+
+  const arrowClass =
+    'h-12 w-12 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-graphite transition-colors duration-150 ease-out hover:bg-hover hover:text-ink active:scale-95 disabled:opacity-35 disabled:hover:bg-surface disabled:hover:text-graphite disabled:active:scale-100';
 
   return (
     <>
@@ -108,63 +302,163 @@ export function CoverLetterPreviewPage() {
         </p>
       </div>
 
-      {/* 페이지 분배 계산을 위한 숨은 측정용 렌더링 */}
+      {/* 헤더/푸터 높이 측정용 숨은 렌더링 (섹션은 별도 DOM으로 줄 단위 측정) */}
       <div
         aria-hidden="true"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: -99999,
-          width: PAGE_WIDTH_PX - PAGE_PADDING_PX * 2,
-          visibility: 'hidden'
-        }}
+        style={{ position: 'absolute', top: 0, left: -99999, width: PAGE_CONTENT_WIDTH_PX, visibility: 'hidden' }}
       >
         <div ref={headerRef}>
           <HeaderBlock coverLetter={coverLetter} />
         </div>
-        {coverLetter.sections.map((section, i) => (
-          <div
-            key={section.id}
-            ref={(el) => {
-              sectionRefs.current[section.id] = el;
-            }}
-            style={{ marginTop: SECTION_GAP_PX }}
-          >
-            <SectionBlock section={section} index={i} />
-          </div>
-        ))}
         <div ref={footerRef} style={{ marginTop: SECTION_GAP_PX }}>
           <FooterBlock applicantName={coverLetter.applicantName} />
         </div>
       </div>
 
-      {/* 실제 A4 페이지 미리보기 */}
-      <div className="thin-scroll mt-7 overflow-x-auto pb-4">
-        <div className="flex w-max flex-col items-center gap-8 px-4">
-          {pages.map((sectionIds, pageIdx) => (
-            <article
-              key={pageIdx}
-              className="print-sheet shrink-0 rounded-lg border border-neutral-200 bg-white shadow-sheet"
-              style={{ width: PAGE_WIDTH_PX, height: PAGE_HEIGHT_PX, padding: PAGE_PADDING_PX }}
-            >
-              {pageIdx === 0 && <HeaderBlock coverLetter={coverLetter} />}
-              {sectionIds.map((id) => {
-                const index = coverLetter.sections.findIndex((s) => s.id === id);
-                return (
-                  <div key={id} style={{ marginTop: SECTION_GAP_PX }}>
-                    <SectionBlock section={coverLetter.sections[index]} index={index} />
+      {/* 화면 뷰어: 반응형으로 축소되는 페이지 단위 내비게이션 */}
+      <div className="no-print mt-7">
+        <div className="flex flex-col items-center gap-4 lg:flex-row lg:justify-center lg:gap-3">
+          <button
+            type="button"
+            onClick={() => go(-1)}
+            disabled={atStart}
+            aria-label="이전 페이지"
+            className={`hidden lg:inline-flex ${arrowClass}`}
+          >
+            <ChevronLeftIcon className="h-6 w-6" aria-hidden="true" />
+          </button>
+
+          <div
+            ref={stageRef}
+            className="flex w-full min-w-0 items-center justify-center overflow-hidden lg:flex-1"
+            style={{ height: PAGE_HEIGHT_PX * scale }}
+          >
+            <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+              <motion.div
+                key={current}
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+                drag={!isWide && pages.length > perView ? 'x' : false}
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.7}
+                dragMomentum={false}
+                onDragEnd={handleDragEnd}
+                className="flex touch-pan-y items-start"
+                style={{ gap: PAGE_SPREAD_GAP_PX }}
+              >
+                {visible.map((pageIdx) => (
+                  <div
+                    key={pageIdx}
+                    className="shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sheet"
+                    style={{ width: PAGE_WIDTH_PX * scale, height: PAGE_HEIGHT_PX * scale }}
+                  >
+                    <div
+                      style={{
+                        width: PAGE_WIDTH_PX,
+                        height: PAGE_HEIGHT_PX,
+                        padding: PAGE_PADDING_PX,
+                        transform: `scale(${scale})`,
+                        transformOrigin: 'top left'
+                      }}
+                    >
+                      <PageContent
+                        page={pages[pageIdx]}
+                        coverLetter={coverLetter}
+                        isFirstPage={pageIdx === 0}
+                        isLastPage={pageIdx === pages.length - 1}
+                      />
+                    </div>
                   </div>
-                );
-              })}
-              {pageIdx === pages.length - 1 && (
-                <div style={{ marginTop: SECTION_GAP_PX }}>
-                  <FooterBlock applicantName={coverLetter.applicantName} />
-                </div>
-              )}
-            </article>
-          ))}
+                ))}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => go(1)}
+            disabled={atEnd}
+            aria-label="다음 페이지"
+            className={`hidden lg:inline-flex ${arrowClass}`}
+          >
+            <ChevronRightIcon className="h-6 w-6" aria-hidden="true" />
+          </button>
         </div>
+
+        <div className="mt-3 flex items-center justify-center gap-4 lg:mt-4">
+          <button
+            type="button"
+            onClick={() => go(-1)}
+            disabled={atStart}
+            aria-label="이전 페이지"
+            className={`inline-flex lg:hidden ${arrowClass}`}
+          >
+            <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
+          </button>
+          <p className="min-w-27.5 text-center text-sm tabular-nums text-graphite">{pageLabel}</p>
+          <button
+            type="button"
+            onClick={() => go(1)}
+            disabled={atEnd}
+            aria-label="다음 페이지"
+            className={`inline-flex lg:hidden ${arrowClass}`}
+          >
+            <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+        {pages.length > 1 && (
+          <p className="mt-2 text-center text-2xs text-mute lg:hidden">좌우로 밀어서 페이지를 넘길 수 있습니다.</p>
+        )}
       </div>
+
+      {/* 인쇄 전용: 전체 페이지를 순서대로 (block 컨테이너 — flex 안에서는 break-after가 무시됨) */}
+      <div className="print-only">
+        {pages.map((page, pageIdx) => (
+          <article key={pageIdx} className="print-sheet" style={{ width: PAGE_WIDTH_PX, padding: PAGE_PADDING_PX }}>
+            <PageContent
+              page={page}
+              coverLetter={coverLetter}
+              isFirstPage={pageIdx === 0}
+              isLastPage={pageIdx === pages.length - 1}
+            />
+          </article>
+        ))}
+      </div>
+    </>
+  );
+}
+
+/**
+ * @description 한 페이지에 들어갈 헤더/청크/푸터를 배치하는 컴포넌트
+ */
+function PageContent({
+  page,
+  coverLetter,
+  isFirstPage,
+  isLastPage
+}: {
+  page: Chunk[];
+  coverLetter: CoverLetter;
+  isFirstPage: boolean;
+  isLastPage: boolean;
+}) {
+  return (
+    <>
+      {isFirstPage && <HeaderBlock coverLetter={coverLetter} />}
+      {page.map((chunk, i) => (
+        <div key={`${chunk.sectionIndex}-${i}`} style={{ marginTop: SECTION_GAP_PX }}>
+          <ChunkBlock chunk={chunk} section={coverLetter.sections[chunk.sectionIndex]} />
+        </div>
+      ))}
+      {isLastPage && (
+        <div style={{ marginTop: SECTION_GAP_PX }}>
+          <FooterBlock applicantName={coverLetter.applicantName} />
+        </div>
+      )}
     </>
   );
 }
@@ -196,28 +490,20 @@ function HeaderBlock({ coverLetter }: { coverLetter: CoverLetter }) {
 }
 
 /**
- * @description 자기소개서 항목 하나를 보여주는 컴포넌트
+ * @description 자기소개서 항목(또는 그 일부)을 보여주는 컴포넌트
  */
-function SectionBlock({ section, index }: { section: CoverLetterSection; index: number }) {
+function ChunkBlock({ chunk, section }: { chunk: Chunk; section: CoverLetterSection }) {
   return (
     <section className="break-inside-avoid">
       <h3 className="text-[16px] font-semibold text-neutral-900">
         <span className="mr-2 text-2xs font-normal tabular-nums text-neutral-500">
-          {String(index + 1).padStart(2, '0')}
+          {String(chunk.sectionIndex + 1).padStart(2, '0')}
         </span>
         {section.title || '제목 없는 항목'}
+        {chunk.continuation && <span className="ml-1.5 text-[13px] font-normal text-neutral-400">(계속)</span>}
       </h3>
-      {section.body.trim() ? (
-        <>
-          <p className="mt-3 whitespace-pre-wrap text-[15px] leading-[1.95] text-neutral-700">{section.body}</p>
-          <p className="no-print mt-2 text-right text-2xs tabular-nums text-neutral-500">
-            {countChars(section.body)}자
-          </p>
-        </>
-      ) : (
-        <p className="no-print mt-3 border-l-2 border-neutral-200 pl-3 text-[13px] text-neutral-500">
-          아직 작성되지 않은 항목입니다.
-        </p>
+      {chunk.text && (
+        <p className="mt-3 whitespace-pre-wrap text-[15px] leading-[1.95] text-neutral-700">{chunk.text}</p>
       )}
     </section>
   );
