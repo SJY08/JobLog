@@ -34,6 +34,14 @@ function extractUserId(req: VercelRequest): string {
     }
 }
 
+/**
+ * @description 요청을 검증하고 사용자 id만 돌려주는 함수. DB 조회 없이 토큰만 확인하므로
+ * 사용자 프로필(이름/이메일 등)이 필요 없는 대부분의 엔드포인트에서는 requireUser 대신 이걸 씀
+ */
+export function requireUserId(req: VercelRequest): string {
+    return extractUserId(req)
+}
+
 export interface UserRow {
     id: string
     google_sub: string

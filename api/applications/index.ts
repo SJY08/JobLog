@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
 import { fromApplicationInput, toApplication } from "../_lib/applications.js"
-import { requireUser } from "../_lib/auth.js"
+import { requireUserId } from "../_lib/auth.js"
 import { HttpError, requireMethod, withErrors } from "../_lib/http.js"
 import { getSupabase } from "../_lib/supabase.js"
 
@@ -98,9 +98,9 @@ async function remove(req: VercelRequest, res: VercelResponse, userId: string) {
 
 export default withErrors(async (req: VercelRequest, res: VercelResponse) => {
     if (!requireMethod(req, res, ["GET", "POST", "DELETE"])) return
-    const user = await requireUser(req)
+    const userId = requireUserId(req)
 
-    if (req.method === "GET") return list(req, res, user.id)
-    if (req.method === "POST") return create(req, res, user.id)
-    return remove(req, res, user.id)
+    if (req.method === "GET") return list(req, res, userId)
+    if (req.method === "POST") return create(req, res, userId)
+    return remove(req, res, userId)
 })

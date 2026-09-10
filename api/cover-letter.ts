@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
-import { requireUser } from "./_lib/auth.js"
+import { requireUserId } from "./_lib/auth.js"
 import { requireMethod, withErrors } from "./_lib/http.js"
 import { getSupabase } from "./_lib/supabase.js"
 
@@ -40,11 +40,11 @@ function toCoverLetter(row: CoverLetterRow) {
 
 export default withErrors(async (req: VercelRequest, res: VercelResponse) => {
     if (!requireMethod(req, res, ["GET", "PUT"])) return
-    const user = await requireUser(req)
+    const userId = requireUserId(req)
     const supabase = getSupabase()
 
     if (req.method === "GET") {
-        const { data } = await supabase.from("cover_letters").select("*").eq("user_id", user.id).maybeSingle()
+        const { data } = await supabase.from("cover_letters").select("*").eq("user_id", userId).maybeSingle()
         res.status(200).json(data ? toCoverLetter(data) : defaultCoverLetter())
         return
     }
@@ -58,7 +58,7 @@ export default withErrors(async (req: VercelRequest, res: VercelResponse) => {
     const { data, error } = await supabase
         .from("cover_letters")
         .upsert({
-            user_id: user.id,
+            user_id: userId,
             applicant_name: body.applicantName ?? "",
             target_company: body.targetCompany ?? "",
             target_position: body.targetPosition ?? "",

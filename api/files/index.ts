@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
-import { requireUser } from "../_lib/auth.js"
+import { requireUserId } from "../_lib/auth.js"
 import { toStoredFile } from "../_lib/files.js"
 import { HttpError, requireMethod, withErrors } from "../_lib/http.js"
 import { getSupabase } from "../_lib/supabase.js"
@@ -51,8 +51,8 @@ async function create(req: VercelRequest, res: VercelResponse, userId: string) {
 
 export default withErrors(async (req: VercelRequest, res: VercelResponse) => {
     if (!requireMethod(req, res, ["GET", "POST"])) return
-    const user = await requireUser(req)
+    const userId = requireUserId(req)
 
-    if (req.method === "GET") return list(req, res, user.id)
-    return create(req, res, user.id)
+    if (req.method === "GET") return list(req, res, userId)
+    return create(req, res, userId)
 })
