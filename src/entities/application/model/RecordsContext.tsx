@@ -31,6 +31,8 @@ export function emptyApplication(): Application {
 interface RecordsValue {
   applications: Application[];
   loading: boolean;
+  error: boolean;
+  reload: () => void;
   getApplication: (id: string) => Application | undefined;
   createApplication: (data: Application) => Promise<Application>;
   updateApplication: (id: string, patch: Partial<Application>) => Promise<void>;
@@ -61,7 +63,11 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
   const [files, setFiles] = useState<StoredFile[]>([]);
   const [coverLetter, setCoverLetter] = useState<CoverLetter>(SEED_COVER_LETTER);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const fileTimers = useRef<Record<string, number>>({});
+
+  const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
   useEffect(() => {
     if (!ready) return;
@@ -69,11 +75,13 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
       setApplications([]);
       setFiles([]);
       setCoverLetter(SEED_COVER_LETTER);
+      setError(false);
       setLoading(false);
       return;
     }
     let alive = true;
     setLoading(true);
+    setError(false);
     Promise.all([
       api.get<{ items: Application[] }>('/applications', { pageSize: 500 }),
       api.get<StoredFile[]>('/files'),
@@ -85,13 +93,16 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
         setFiles(filesRes);
         setCoverLetter(cl);
       })
+      .catch(() => {
+        if (alive) setError(true);
+      })
       .finally(() => {
         if (alive) setLoading(false);
       });
     return () => {
       alive = false;
     };
-  }, [ready, user]);
+  }, [ready, user, reloadKey]);
 
   const getApplication = useCallback((id: string) => applications.find((a) => a.id === id), [applications]);
 
@@ -189,6 +200,8 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
     () => ({
       applications,
       loading,
+      error,
+      reload,
       getApplication,
       createApplication,
       updateApplication,
@@ -208,6 +221,8 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
     [
       applications,
       loading,
+      error,
+      reload,
       getApplication,
       createApplication,
       updateApplication,

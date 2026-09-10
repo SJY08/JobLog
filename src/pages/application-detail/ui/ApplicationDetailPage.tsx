@@ -42,14 +42,15 @@ export function ApplicationDetailPage() {
   const location = useLocation();
   const isNew = id === 'new' || location.pathname.endsWith('/applications/new');
   const navigate = useNavigate();
-  const { loading, getApplication, createApplication, updateApplication, removeApplications } = useRecords();
+  const { loading, error, reload, getApplication, createApplication, updateApplication, removeApplications } =
+    useRecords();
   const original = isNew ? undefined : getApplication(id);
 
   const [draft, setDraft] = useState<Application | null>(isNew ? emptyApplication() : original ?? null);
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const notFound = !isNew && !loading && !original && !draft;
+  const notFound = !isNew && !loading && !error && !original && !draft;
 
   useEffect(() => {
     if (!isNew && original && !draft) {
@@ -93,6 +94,20 @@ export function ApplicationDetailPage() {
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
+
+  if (!isNew && !draft && error) {
+    return (
+      <div className="py-24 text-center">
+        <p className="text-[15px] font-semibold text-ink">기록을 불러오지 못했습니다.</p>
+        <p className="mx-auto mt-2 max-w-[44ch] text-[13px] leading-relaxed text-mute">
+          네트워크 상태를 확인한 뒤 다시 시도해 주세요.
+        </p>
+        <Button variant="outline" className="mt-5" onClick={reload}>
+          다시 시도
+        </Button>
+      </div>
+    );
+  }
 
   if (!draft && !notFound) {
     return null;

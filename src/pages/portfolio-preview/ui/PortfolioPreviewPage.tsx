@@ -11,10 +11,24 @@ import { dotDate, fileSize } from '@/shared/lib';
  */
 export function PortfolioPreviewPage() {
   const { id = '' } = useParams();
-  const { files, loading } = useRecords();
+  const { files, loading, error, reload } = useRecords();
   const file = files.find((f) => f.id === id);
 
   if (loading) return null;
+
+  if (error) {
+    return (
+      <div className="py-24 text-center">
+        <p className="text-[15px] font-semibold text-ink">파일 정보를 불러오지 못했습니다.</p>
+        <p className="mx-auto mt-2 max-w-[44ch] text-[13px] leading-relaxed text-mute">
+          네트워크 상태를 확인한 뒤 다시 시도해 주세요.
+        </p>
+        <Button variant="outline" className="mt-5" onClick={reload}>
+          다시 시도
+        </Button>
+      </div>
+    );
+  }
 
   if (!file) {
     return (

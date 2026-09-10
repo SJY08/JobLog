@@ -12,7 +12,7 @@ import { countChars, dotDate, fileSize, longDate } from '@/shared/lib';
  * @description 포트폴리오를 정리하는 페이지
  */
 export function PortfolioPage() {
-  const { files, addFiles, updateFile, removeFile, coverLetter } = useRecords();
+  const { files, loading, error, reload, addFiles, updateFile, removeFile, coverLetter } = useRecords();
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [kindFilter, setKindFilter] = useState<FileKind | 'all'>('all');
@@ -94,71 +94,85 @@ export function PortfolioPage() {
           </div>
         </div>
 
-        <ul className="mt-3 border-t border-line">
-          {visible.map((file) => (
-            <li key={file.id} className="border-b border-lineSoft">
-              <div className="flex flex-col gap-2.5 rounded-lg px-3 py-3.5 transition-colors duration-150 ease-out hover:bg-hover sm:flex-row sm:items-center sm:gap-4">
-                <span className="inline-flex w-19 shrink-0 items-center justify-center rounded border border-line px-2 py-1 text-2xs text-graphite">
-                  {file.kind}
-                </span>
-
-                <input
-                  value={file.label}
-                  aria-label={`${file.fileName} 표시 이름`}
-                  onChange={(e) => updateFile(file.id, { label: e.target.value })}
-                  className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 py-1.5 text-sm font-medium text-ink transition-colors duration-150 ease-out hover:border-line focus:border-primary focus:outline-none"
-                />
-
-                <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-mute">
-                  <span className="max-w-50 truncate">{file.fileName}</span>
-                  <span className="tabular-nums">{fileSize(file.size)}</span>
-                  <span className="whitespace-nowrap tabular-nums">{dotDate(file.uploadedAt)} 업로드</span>
-                </div>
-
-                <div className="flex shrink-0 items-center gap-0.5">
-                  {isPdfFile(file) && (
-                    <Link
-                      to={`/portfolio/preview/${file.id}`}
-                      aria-label={`${file.label} 미리보기`}
-                      title="미리보기"
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-md text-mute transition-colors duration-150 ease-out hover:bg-hover hover:text-primary"
-                    >
-                      <EyeIcon className="h-4 w-4" aria-hidden="true" />
-                    </Link>
-                  )}
-                  <a
-                    href={file.url}
-                    download={file.fileName}
-                    aria-label={`${file.label} 다운로드`}
-                    title="다운로드"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-md text-mute transition-colors duration-150 ease-out hover:bg-hover hover:text-ink"
-                  >
-                    <DownloadIcon className="h-4 w-4" aria-hidden="true" />
-                  </a>
-                  <IconButton label={`${file.label} 삭제`} tone="danger" onClick={() => setPendingDelete(file.id)}>
-                    <Trash2Icon className="h-4 w-4" aria-hidden="true" />
-                  </IconButton>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-
-        {visible.length === 0 && (
+        {loading ? null : error ? (
           <div className="py-16 text-center">
-            <p className="text-[15px] font-semibold text-ink">
-              {files.length === 0 ? '아직 올린 파일이 없습니다.' : '이 종류의 파일이 없습니다.'}
-            </p>
+            <p className="text-[15px] font-semibold text-ink">파일 목록을 불러오지 못했습니다.</p>
             <p className="mx-auto mt-2 max-w-[44ch] text-[13px] leading-relaxed text-mute">
-              {files.length === 0
-                ? '이력서 PDF 하나만 올려두어도, 지원할 때마다 찾아 헤매지 않습니다.'
-                : '다른 종류를 선택하거나 새 파일을 추가해 보세요.'}
+              네트워크 상태를 확인한 뒤 다시 시도해 주세요.
             </p>
-            <Button variant="outline" className="mt-5" onClick={() => setUploadOpen(true)}>
-              <PlusIcon className="h-4 w-4" aria-hidden="true" />
-              파일 추가
+            <Button variant="outline" className="mt-5" onClick={reload}>
+              다시 시도
             </Button>
           </div>
+        ) : (
+          <>
+            <ul className="mt-3 border-t border-line">
+              {visible.map((file) => (
+                <li key={file.id} className="border-b border-lineSoft">
+                  <div className="flex flex-col gap-2.5 rounded-lg px-3 py-3.5 transition-colors duration-150 ease-out hover:bg-hover sm:flex-row sm:items-center sm:gap-4">
+                    <span className="inline-flex w-19 shrink-0 items-center justify-center rounded border border-line px-2 py-1 text-2xs text-graphite">
+                      {file.kind}
+                    </span>
+
+                    <input
+                      value={file.label}
+                      aria-label={`${file.fileName} 표시 이름`}
+                      onChange={(e) => updateFile(file.id, { label: e.target.value })}
+                      className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 py-1.5 text-sm font-medium text-ink transition-colors duration-150 ease-out hover:border-line focus:border-primary focus:outline-none"
+                    />
+
+                    <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-mute">
+                      <span className="max-w-50 truncate">{file.fileName}</span>
+                      <span className="tabular-nums">{fileSize(file.size)}</span>
+                      <span className="whitespace-nowrap tabular-nums">{dotDate(file.uploadedAt)} 업로드</span>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-0.5">
+                      {isPdfFile(file) && (
+                        <Link
+                          to={`/portfolio/preview/${file.id}`}
+                          aria-label={`${file.label} 미리보기`}
+                          title="미리보기"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-md text-mute transition-colors duration-150 ease-out hover:bg-hover hover:text-primary"
+                        >
+                          <EyeIcon className="h-4 w-4" aria-hidden="true" />
+                        </Link>
+                      )}
+                      <a
+                        href={file.url}
+                        download={file.fileName}
+                        aria-label={`${file.label} 다운로드`}
+                        title="다운로드"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-mute transition-colors duration-150 ease-out hover:bg-hover hover:text-ink"
+                      >
+                        <DownloadIcon className="h-4 w-4" aria-hidden="true" />
+                      </a>
+                      <IconButton label={`${file.label} 삭제`} tone="danger" onClick={() => setPendingDelete(file.id)}>
+                        <Trash2Icon className="h-4 w-4" aria-hidden="true" />
+                      </IconButton>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            {visible.length === 0 && (
+              <div className="py-16 text-center">
+                <p className="text-[15px] font-semibold text-ink">
+                  {files.length === 0 ? '아직 올린 파일이 없습니다.' : '이 종류의 파일이 없습니다.'}
+                </p>
+                <p className="mx-auto mt-2 max-w-[44ch] text-[13px] leading-relaxed text-mute">
+                  {files.length === 0
+                    ? '이력서 PDF 하나만 올려두어도, 지원할 때마다 찾아 헤매지 않습니다.'
+                    : '다른 종류를 선택하거나 새 파일을 추가해 보세요.'}
+                </p>
+                <Button variant="outline" className="mt-5" onClick={() => setUploadOpen(true)}>
+                  <PlusIcon className="h-4 w-4" aria-hidden="true" />
+                  파일 추가
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </section>
 

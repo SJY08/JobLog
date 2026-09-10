@@ -14,7 +14,7 @@ const PAGE_SIZE = 10;
  * @description 지원 기록을 목록으로 보여주는 페이지
  */
 export function ApplicationsPage() {
-  const { applications, loading, removeApplications } = useRecords();
+  const { applications, loading, error, reload, removeApplications } = useRecords();
   const navigate = useNavigate();
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [selected, setSelected] = useState<string[]>([]);
@@ -133,7 +133,17 @@ export function ApplicationsPage() {
         )}
       </div>
 
-      {loading ? null : pageRows.length > 0 ? (
+      {loading ? null : error ? (
+        <div className="border-t border-line py-20 text-center">
+          <p className="text-[15px] font-semibold text-ink">기록을 불러오지 못했습니다.</p>
+          <p className="mx-auto mt-2 max-w-[42ch] text-[13px] leading-relaxed text-mute">
+            네트워크 상태를 확인한 뒤 다시 시도해 주세요.
+          </p>
+          <Button variant="outline" className="mt-5" onClick={reload}>
+            다시 시도
+          </Button>
+        </div>
+      ) : pageRows.length > 0 ? (
         <>
           <ApplicationList
             rows={pageRows}
