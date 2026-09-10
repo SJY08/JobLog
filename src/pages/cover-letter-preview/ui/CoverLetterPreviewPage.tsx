@@ -20,7 +20,7 @@ const SECTION_GAP_PX = 36;
 const PAGE_SPREAD_GAP_PX = 24;
 const SWIPE_DISTANCE = 60;
 const SWIPE_VELOCITY = 500;
-const VIEWER_BOTTOM_RESERVED_PX = 96;
+const VIEWER_BOTTOM_RESERVED_PX = 144;
 
 interface Chunk {
   sectionIndex: number;
@@ -216,7 +216,8 @@ export function CoverLetterPreviewPage() {
       const rect = el.getBoundingClientRect();
       if (rect.width <= 0) return;
       const perSlot = perView === 2 ? (rect.width - PAGE_SPREAD_GAP_PX) / 2 : rect.width;
-      const availableHeight = Math.max(240, window.innerHeight - rect.top - VIEWER_BOTTOM_RESERVED_PX);
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      const availableHeight = Math.max(240, viewportHeight - rect.top - VIEWER_BOTTOM_RESERVED_PX);
       const scaleByWidth = perSlot / PAGE_WIDTH_PX;
       const scaleByHeight = availableHeight / PAGE_HEIGHT_PX;
       setScale(Math.min(1, scaleByWidth, scaleByHeight));
@@ -354,76 +355,78 @@ export function CoverLetterPreviewPage() {
 
       {/* 화면 뷰어: 반응형으로 축소되는 페이지 단위 내비게이션 */}
       <div className="no-print mt-7">
-        <div className="flex flex-col items-center gap-4 lg:flex-row lg:justify-center lg:gap-3">
-          <button
-            type="button"
-            onClick={() => go(-1)}
-            disabled={atStart}
-            aria-label="이전 페이지"
-            className={`hidden lg:inline-flex ${arrowClass}`}
-          >
-            <ChevronLeftIcon className="h-6 w-6" aria-hidden="true" />
-          </button>
+        <div className="relative left-1/2 w-screen -translate-x-1/2 px-4 sm:px-8 lg:px-12">
+          <div className="flex flex-col items-center gap-4 lg:flex-row lg:justify-center lg:gap-3">
+            <button
+              type="button"
+              onClick={() => go(-1)}
+              disabled={atStart}
+              aria-label="이전 페이지"
+              className={`hidden lg:inline-flex ${arrowClass}`}
+            >
+              <ChevronLeftIcon className="h-6 w-6" aria-hidden="true" />
+            </button>
 
-          <div
-            ref={stageRef}
-            className="flex w-full min-w-0 items-center justify-center overflow-hidden lg:flex-1"
-            style={{ height: PAGE_HEIGHT_PX * scale }}
-          >
-            <AnimatePresence mode="popLayout" custom={direction} initial={false}>
-              <motion.div
-                key={current}
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.22, ease: 'easeOut' }}
-                drag={!isWide && pages.length > perView ? 'x' : false}
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.7}
-                dragMomentum={false}
-                onDragEnd={handleDragEnd}
-                className="flex touch-pan-y items-start"
-                style={{ gap: PAGE_SPREAD_GAP_PX }}
-              >
-                {visible.map((pageIdx) => (
-                  <div
-                    key={pageIdx}
-                    className="shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sheet"
-                    style={{ width: PAGE_WIDTH_PX * scale, height: PAGE_HEIGHT_PX * scale }}
-                  >
+            <div
+              ref={stageRef}
+              className="flex w-full min-w-0 items-center justify-center overflow-hidden lg:flex-1"
+              style={{ height: PAGE_HEIGHT_PX * scale }}
+            >
+              <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+                <motion.div
+                  key={current}
+                  custom={direction}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  drag={!isWide && pages.length > perView ? 'x' : false}
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.7}
+                  dragMomentum={false}
+                  onDragEnd={handleDragEnd}
+                  className="flex touch-pan-y items-start"
+                  style={{ gap: PAGE_SPREAD_GAP_PX }}
+                >
+                  {visible.map((pageIdx) => (
                     <div
-                      style={{
-                        width: PAGE_WIDTH_PX,
-                        height: PAGE_HEIGHT_PX,
-                        padding: PAGE_PADDING_PX,
-                        transform: `scale(${scale})`,
-                        transformOrigin: 'top left'
-                      }}
+                      key={pageIdx}
+                      className="shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sheet"
+                      style={{ width: PAGE_WIDTH_PX * scale, height: PAGE_HEIGHT_PX * scale }}
                     >
-                      <PageContent
-                        page={pages[pageIdx]}
-                        coverLetter={coverLetter}
-                        isFirstPage={pageIdx === 0}
-                        isLastPage={pageIdx === pages.length - 1}
-                      />
+                      <div
+                        style={{
+                          width: PAGE_WIDTH_PX,
+                          height: PAGE_HEIGHT_PX,
+                          padding: PAGE_PADDING_PX,
+                          transform: `scale(${scale})`,
+                          transformOrigin: 'top left'
+                        }}
+                      >
+                        <PageContent
+                          page={pages[pageIdx]}
+                          coverLetter={coverLetter}
+                          isFirstPage={pageIdx === 0}
+                          isLastPage={pageIdx === pages.length - 1}
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </motion.div>
-            </AnimatePresence>
-          </div>
+                  ))}
+                </motion.div>
+              </AnimatePresence>
+            </div>
 
-          <button
-            type="button"
-            onClick={() => go(1)}
-            disabled={atEnd}
-            aria-label="다음 페이지"
-            className={`hidden lg:inline-flex ${arrowClass}`}
-          >
-            <ChevronRightIcon className="h-6 w-6" aria-hidden="true" />
-          </button>
+            <button
+              type="button"
+              onClick={() => go(1)}
+              disabled={atEnd}
+              aria-label="다음 페이지"
+              className={`hidden lg:inline-flex ${arrowClass}`}
+            >
+              <ChevronRightIcon className="h-6 w-6" aria-hidden="true" />
+            </button>
+          </div>
         </div>
 
         <div className="mt-3 flex items-center justify-center gap-4 lg:mt-4">
