@@ -216,8 +216,9 @@ export function CoverLetterPreviewPage() {
       const rect = el.getBoundingClientRect();
       if (rect.width <= 0) return;
       const perSlot = perView === 2 ? (rect.width - PAGE_SPREAD_GAP_PX) / 2 : rect.width;
+      // PdfPage의 max-h-[calc(100dvh-9rem)]와 동일한 기준으로 맞춰서 두 미리보기가 같은 크기로 보이게 함
       const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
-      const availableHeight = Math.max(240, viewportHeight - rect.top - VIEWER_BOTTOM_RESERVED_PX);
+      const availableHeight = Math.max(240, viewportHeight - VIEWER_BOTTOM_RESERVED_PX);
       const scaleByWidth = perSlot / PAGE_WIDTH_PX;
       const scaleByHeight = availableHeight / PAGE_HEIGHT_PX;
       setScale(Math.min(1, scaleByWidth, scaleByHeight));
