@@ -19,9 +19,9 @@ interface StoredFileRow {
  */
 export async function toStoredFile(row: StoredFileRow) {
     const supabase = getSupabase()
-    const { data } = await supabase.storage
-        .from(FILES_BUCKET)
-        .createSignedUrl(row.storage_path, SIGNED_URL_TTL_SECONDS, { download: row.file_name })
+    const { data } = await supabase.storage.from(FILES_BUCKET).createSignedUrl(row.storage_path, SIGNED_URL_TTL_SECONDS)
+    const signedUrl = data?.signedUrl ?? ""
+    const url = signedUrl ? `${signedUrl}&download=${encodeURIComponent(row.file_name)}` : ""
     return {
         id: row.id,
         kind: row.kind,
@@ -30,6 +30,6 @@ export async function toStoredFile(row: StoredFileRow) {
         mimeType: row.mime_type,
         size: row.size,
         uploadedAt: row.uploaded_at,
-        url: data?.signedUrl ?? "",
+        url,
     }
 }
