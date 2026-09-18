@@ -19,7 +19,9 @@ interface StoredFileRow {
  */
 export async function toStoredFile(row: StoredFileRow) {
     const supabase = getSupabase()
-    const { data } = await supabase.storage.from(FILES_BUCKET).createSignedUrl(row.storage_path, SIGNED_URL_TTL_SECONDS)
+    const { data } = await supabase.storage
+        .from(FILES_BUCKET)
+        .createSignedUrl(row.storage_path, SIGNED_URL_TTL_SECONDS, { download: row.file_name })
     return {
         id: row.id,
         kind: row.kind,
