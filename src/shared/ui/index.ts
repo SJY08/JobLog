@@ -1,4 +1,5 @@
 export * from './Button';
+export * from './buttonClass';
 export * from './IconButton';
 export * from './Field';
 export * from './TextInput';
