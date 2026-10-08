@@ -5,7 +5,7 @@ import { useRecords } from '@/entities/application';
 import { FILE_KINDS, isPdfFile, type FileKind } from '@/entities/file';
 import { FileUploadModal } from '@/widgets/file-upload-modal';
 import { ConfirmDialog } from '@/widgets/confirm-dialog';
-import { Button, IconButton, SelectInput } from '@/shared/ui';
+import { Button, IconButton, ListSkeleton, SelectInput, buttonClass, useToast } from '@/shared/ui';
 import { countChars, dotDate, fileSize, longDate } from '@/shared/lib';
 
 /**
@@ -16,6 +16,8 @@ export function PortfolioPage() {
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [kindFilter, setKindFilter] = useState<FileKind | 'all'>('all');
+  const [deleting, setDeleting] = useState(false);
+  const toast = useToast();
 
   const written = coverLetter.sections.filter((s) => countChars(s.body) > 0).length;
   const totalChars = coverLetter.sections.reduce((sum, s) => sum + countChars(s.body), 0);
@@ -38,7 +40,7 @@ export function PortfolioPage() {
         <div className="flex flex-wrap items-center justify-between gap-5">
           <div className="flex items-start gap-4">
             <span
-              className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primarySoft"
+              className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary-soft"
               aria-hidden="true"
             >
               <FileTextIcon className="h-4 w-4 text-primary" />
@@ -58,11 +60,11 @@ export function PortfolioPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link to="/cover-letter">
-              <Button variant="primary">작성 · 수정하기</Button>
+            <Link to="/cover-letter" className={buttonClass('primary')}>
+              작성 · 수정하기
             </Link>
-            <Link to="/cover-letter/preview">
-              <Button variant="outline">미리보기 · PDF</Button>
+            <Link to="/cover-letter/preview" className={buttonClass('outline')}>
+              미리보기 · PDF
             </Link>
           </div>
         </div>
@@ -94,7 +96,11 @@ export function PortfolioPage() {
           </div>
         </div>
 
-        {loading ? null : error ? (
+        {loading ? (
+          <div className="mt-3">
+            <ListSkeleton rows={3} />
+          </div>
+        ) : error ? (
           <div className="py-16 text-center">
             <p className="text-[15px] font-semibold text-ink">파일 목록을 불러오지 못했습니다.</p>
             <p className="mx-auto mt-2 max-w-[44ch] text-[13px] leading-relaxed text-mute">
@@ -108,7 +114,7 @@ export function PortfolioPage() {
           <>
             <ul className="mt-3 border-t border-line">
               {visible.map((file) => (
-                <li key={file.id} className="border-b border-lineSoft">
+                <li key={file.id} className="border-b border-line-soft">
                   <div className="flex flex-col gap-2.5 rounded-lg px-3 py-3.5 transition-colors duration-150 ease-out hover:bg-hover sm:flex-row sm:items-center sm:gap-4">
                     <span className="inline-flex w-19 shrink-0 items-center justify-center rounded border border-line px-2 py-1 text-2xs text-graphite">
                       {file.kind}
@@ -117,7 +123,11 @@ export function PortfolioPage() {
                     <input
                       value={file.label}
                       aria-label={`${file.fileName} 표시 이름`}
+                      title="눌러서 이름 바꾸기"
                       onChange={(e) => updateFile(file.id, { label: e.target.value })}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') e.currentTarget.blur();
+                      }}
                       className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 py-1.5 text-sm font-medium text-ink transition-colors duration-150 ease-out hover:border-line focus:border-primary focus:outline-none"
                     />
 
@@ -176,15 +186,32 @@ export function PortfolioPage() {
         )}
       </section>
 
-      <FileUploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} onSubmit={(kind, list) => addFiles(kind, list)} />
+      <FileUploadModal
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        onSubmit={async (kind, list) => {
+          await addFiles(kind, list);
+          toast.success(`파일 ${list.length}개를 추가했습니다.`);
+        }}
+      />
 
       <ConfirmDialog
         open={pendingDelete !== null}
         title="이 파일을 삭제할까요?"
-        description="브라우저에 보관된 파일이 함께 삭제됩니다."
-        onConfirm={() => {
-          if (pendingDelete) removeFile(pendingDelete);
-          setPendingDelete(null);
+        description="저장된 파일이 영구히 삭제되며 되돌릴 수 없습니다."
+        busy={deleting}
+        onConfirm={async () => {
+          if (!pendingDelete) return;
+          setDeleting(true);
+          try {
+            await removeFile(pendingDelete);
+            toast.success('파일을 삭제했습니다.');
+            setPendingDelete(null);
+          } catch {
+            toast.error('삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+          } finally {
+            setDeleting(false);
+          }
         }}
         onCancel={() => setPendingDelete(null)}
       />
