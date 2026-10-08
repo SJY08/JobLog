@@ -14,7 +14,7 @@ import {
 } from '@/entities/application';
 import { RegionPicker } from '@/widgets/region-picker';
 import { ConfirmDialog } from '@/widgets/confirm-dialog';
-import { Button, DatePicker, Field, IconButton, SelectInput, TextInput, inputClass } from '@/shared/ui';
+import { Button, DatePicker, Field, IconButton, SelectInput, Skeleton, TextInput, inputClass, useToast } from '@/shared/ui';
 import { isValidUrl, longDate, today, useSaveShortcut } from '@/shared/lib';
 
 type Errors = Partial<Record<keyof Application, string>>;
@@ -50,6 +50,9 @@ export function ApplicationDetailPage() {
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const toast = useToast();
   const notFound = !isNew && !loading && !error && !original && !draft;
 
   useEffect(() => {
@@ -77,11 +80,32 @@ export function ApplicationDetailPage() {
       } else {
         await updateApplication(draft.id, { ...draft, updatedAt: today() });
       }
+      toast.success(isNew ? '지원 기록을 추가했습니다.' : '변경사항을 저장했습니다.');
       navigate('/applications');
+    } catch {
+      toast.error('저장하지 못했습니다. 잠시 후 다시 시도해 주세요.');
     } finally {
       setSaving(false);
     }
-  }, [draft, isNew, saving, createApplication, updateApplication, navigate]);
+  }, [draft, isNew, saving, createApplication, updateApplication, navigate, toast]);
+
+  const leave = useCallback(() => {
+    if (dirty) setLeaving(true);
+    else navigate('/applications');
+  }, [dirty, navigate]);
+
+  const remove = useCallback(async () => {
+    if (!draft) return;
+    setDeleting(true);
+    try {
+      await removeApplications([draft.id]);
+      toast.success('지원 기록을 삭제했습니다.');
+      navigate('/applications');
+    } catch {
+      toast.error('삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+      setDeleting(false);
+    }
+  }, [draft, removeApplications, navigate, toast]);
 
   useSaveShortcut(save, !!draft);
 
@@ -110,7 +134,18 @@ export function ApplicationDetailPage() {
   }
 
   if (!draft && !notFound) {
-    return null;
+    return (
+      <div role="status" aria-label="불러오는 중">
+        <Skeleton className="h-4 w-28" />
+        <Skeleton className="mt-6 h-7 w-56" />
+        <Skeleton className="mt-3 h-4 w-72 max-w-full" />
+        <div className="mt-10 grid gap-5 sm:grid-cols-2">
+          {Array.from({ length: 4 }, (_, i) => (
+            <Skeleton key={i} className="h-11 w-full" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (!draft || notFound) {
@@ -135,6 +170,10 @@ export function ApplicationDetailPage() {
     <>
       <Link
         to="/applications"
+        onClick={(e) => {
+          e.preventDefault();
+          leave();
+        }}
         className="inline-flex items-center gap-1.5 text-[13px] text-mute transition-colors duration-150 ease-out hover:text-ink"
       >
         <ArrowLeftIcon className="h-3.5 w-3.5" aria-hidden="true" />
@@ -166,7 +205,7 @@ export function ApplicationDetailPage() {
       </div>
 
       {hasErrors && (
-        <p className="mt-4 rounded-md border border-danger/30 bg-dangerSoft px-3.5 py-3 text-[13px] text-danger">
+        <p className="mt-4 rounded-md border border-danger/30 bg-danger-soft px-3.5 py-3 text-[13px] text-danger">
           필수 항목이 비어 있어 저장하지 못했습니다. 표시된 항목을 확인해 주세요.
         </p>
       )}
@@ -298,7 +337,7 @@ export function ApplicationDetailPage() {
                       onClick={() => set('applyStatus', s as ApplyStatus)}
                       className={`rounded-full border px-3.5 py-2 text-[13px] transition-colors duration-150 ease-out ${
                         active
-                          ? 'border-primary bg-primarySoft font-semibold text-primary'
+                          ? 'border-primary bg-primary-soft font-semibold text-primary'
                           : 'border-line bg-surface text-graphite hover:bg-hover'
                       }`}
                     >
@@ -318,7 +357,7 @@ export function ApplicationDetailPage() {
             onChange={(e) => set('memo', e.target.value)}
             rows={10}
             placeholder={'면접 일정, 담당자, 준비할 것\n예: 1차 면접 8/28 14:00'}
-            className={`${inputClass} mt-3 resize-none leading-relaxed`}
+            className={`${inputClass} auto-grow mt-3 min-h-60 resize-none leading-relaxed`}
           />
           <p className="mt-2 text-2xs leading-relaxed text-mute">
             줄바꿈까지 그대로 저장됩니다. 결과가 나오면 지원상태를 함께 바꿔주세요.
@@ -330,11 +369,19 @@ export function ApplicationDetailPage() {
         open={confirming}
         title="이 지원 기록을 삭제할까요?"
         description={`${draft.company || '이름 없는 기록'} · 삭제하면 되돌릴 수 없습니다.`}
-        onConfirm={() => {
-          removeApplications([draft.id]);
-          navigate('/applications');
-        }}
+        busy={deleting}
+        onConfirm={remove}
         onCancel={() => setConfirming(false)}
+      />
+
+      <ConfirmDialog
+        open={leaving}
+        title="저장하지 않고 나갈까요?"
+        description="작성 중인 내용은 저장되지 않습니다."
+        confirmLabel="나가기"
+        cancelLabel="계속 작성"
+        onConfirm={() => navigate('/applications')}
+        onCancel={() => setLeaving(false)}
       />
     </>
   );

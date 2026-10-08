@@ -32,8 +32,8 @@ export const POSTING_STYLE: Record<PostingStatus, string> = {
 export const APPLY_STATUSES: ApplyStatus[] = ['지원완료', '서류합격', '서류탈락', '최종합격', '최종불합격'];
 
 export const APPLY_STYLE: Record<ApplyStatus, string> = {
-  지원완료: 'bg-lineSoft text-graphite border-transparent',
-  서류합격: 'bg-primarySoft text-primary border-primary/25',
+  지원완료: 'bg-line-soft text-graphite border-transparent',
+  서류합격: 'bg-primary-soft text-primary border-primary/25',
   서류탈락: 'bg-transparent text-mute border-line',
   최종합격: 'bg-success text-white border-transparent',
   최종불합격: 'bg-transparent text-danger border-danger/30'

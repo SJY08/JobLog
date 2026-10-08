@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { AuthProvider, useAuth } from "@/entities/session"
 import { RecordsProvider } from "@/entities/application"
 import { ThemeProvider } from "@/shared/providers"
+import { ToastProvider } from "@/shared/ui"
 import { AppShell } from "@/widgets/app-shell"
 import { LoginPage } from "@/pages/login"
 import { PrivacyPage } from "@/pages/privacy"
@@ -19,7 +20,13 @@ import { CoverLetterPreviewPage } from "@/pages/cover-letter-preview"
  */
 function Protected({ children }: { children: React.ReactNode }) {
     const { user, ready } = useAuth()
-    if (!ready) return null
+    if (!ready) {
+        return (
+            <div className="flex min-h-full items-center justify-center" role="status" aria-label="불러오는 중">
+                <img src="/logo.svg" alt="" className="h-10 w-auto animate-pulse opacity-60" />
+            </div>
+        )
+    }
     if (!user) return <Navigate to="/login" replace />
     return <AppShell>{children}</AppShell>
 }
@@ -30,74 +37,76 @@ function Protected({ children }: { children: React.ReactNode }) {
 export function App() {
     return (
         <ThemeProvider>
-            <AuthProvider>
-                <RecordsProvider>
-                    <BrowserRouter>
-                        <Routes>
-                            <Route path="/login" element={<LoginPage />} />
-                            <Route path="/privacy" element={<PrivacyPage />} />
-                            <Route path="/terms" element={<TermsPage />} />
-                            <Route
-                                path="/applications"
-                                element={
-                                    <Protected>
-                                        <ApplicationsPage />
-                                    </Protected>
-                                }
-                            />
-                            <Route
-                                path="/applications/new"
-                                element={
-                                    <Protected>
-                                        <ApplicationDetailPage />
-                                    </Protected>
-                                }
-                            />
-                            <Route
-                                path="/applications/:id"
-                                element={
-                                    <Protected>
-                                        <ApplicationDetailPage />
-                                    </Protected>
-                                }
-                            />
-                            <Route
-                                path="/portfolio"
-                                element={
-                                    <Protected>
-                                        <PortfolioPage />
-                                    </Protected>
-                                }
-                            />
-                            <Route
-                                path="/portfolio/preview/:id"
-                                element={
-                                    <Protected>
-                                        <PortfolioPreviewPage />
-                                    </Protected>
-                                }
-                            />
-                            <Route
-                                path="/cover-letter"
-                                element={
-                                    <Protected>
-                                        <CoverLetterEditorPage />
-                                    </Protected>
-                                }
-                            />
-                            <Route
-                                path="/cover-letter/preview"
-                                element={
-                                    <Protected>
-                                        <CoverLetterPreviewPage />
-                                    </Protected>
-                                }
-                            />
-                            <Route path="*" element={<Navigate to="/applications" replace />} />
-                        </Routes>
-                    </BrowserRouter>
-                </RecordsProvider>
-            </AuthProvider>
+            <ToastProvider>
+                <AuthProvider>
+                    <RecordsProvider>
+                        <BrowserRouter>
+                            <Routes>
+                                <Route path="/login" element={<LoginPage />} />
+                                <Route path="/privacy" element={<PrivacyPage />} />
+                                <Route path="/terms" element={<TermsPage />} />
+                                <Route
+                                    path="/applications"
+                                    element={
+                                        <Protected>
+                                            <ApplicationsPage />
+                                        </Protected>
+                                    }
+                                />
+                                <Route
+                                    path="/applications/new"
+                                    element={
+                                        <Protected>
+                                            <ApplicationDetailPage />
+                                        </Protected>
+                                    }
+                                />
+                                <Route
+                                    path="/applications/:id"
+                                    element={
+                                        <Protected>
+                                            <ApplicationDetailPage />
+                                        </Protected>
+                                    }
+                                />
+                                <Route
+                                    path="/portfolio"
+                                    element={
+                                        <Protected>
+                                            <PortfolioPage />
+                                        </Protected>
+                                    }
+                                />
+                                <Route
+                                    path="/portfolio/preview/:id"
+                                    element={
+                                        <Protected>
+                                            <PortfolioPreviewPage />
+                                        </Protected>
+                                    }
+                                />
+                                <Route
+                                    path="/cover-letter"
+                                    element={
+                                        <Protected>
+                                            <CoverLetterEditorPage />
+                                        </Protected>
+                                    }
+                                />
+                                <Route
+                                    path="/cover-letter/preview"
+                                    element={
+                                        <Protected>
+                                            <CoverLetterPreviewPage />
+                                        </Protected>
+                                    }
+                                />
+                                <Route path="*" element={<Navigate to="/applications" replace />} />
+                            </Routes>
+                        </BrowserRouter>
+                    </RecordsProvider>
+                </AuthProvider>
+            </ToastProvider>
         </ThemeProvider>
     )
 }

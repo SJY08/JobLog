@@ -4,7 +4,7 @@ import { AnimatePresence, motion, type PanInfo } from 'framer-motion';
 import { ArrowLeftIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, LoaderIcon } from 'lucide-react';
 import { useRecords } from '@/entities/application';
 import type { CoverLetter, CoverLetterSection } from '@/entities/cover-letter';
-import { Button } from '@/shared/ui';
+import { Button, useToast } from '@/shared/ui';
 import { countChars, longDate, sanitizeFileName } from '@/shared/lib';
 
 const MM_TO_PX = 96 / 25.4;
@@ -40,6 +40,7 @@ const slideVariants = {
 export function CoverLetterPreviewPage() {
   const navigate = useNavigate();
   const { coverLetter } = useRecords();
+  const toast = useToast();
   const filled = coverLetter.sections.filter((s) => s.body.trim().length > 0);
   const total = coverLetter.sections.reduce((sum, s) => sum + countChars(s.body), 0);
 
@@ -284,10 +285,12 @@ export function CoverLetterPreviewPage() {
       }
 
       pdf.save(`${fileName}.pdf`);
+    } catch {
+      toast.error('PDF를 만들지 못했습니다. 잠시 후 다시 시도해 주세요.');
     } finally {
       setDownloading(false);
     }
-  }, [downloading, pages, coverLetter.applicantName, coverLetter.targetPosition]);
+  }, [downloading, pages, coverLetter.applicantName, coverLetter.targetPosition, toast]);
 
   const visible = Array.from({ length: perView }, (_, i) => current + i).filter((i) => i < pages.length);
   const atStart = current === 0;

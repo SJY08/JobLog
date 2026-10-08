@@ -6,7 +6,7 @@ import { ApplicationList } from '@/widgets/application-list';
 import { Pagination } from '@/widgets/pagination';
 import { EMPTY_FILTERS, FilterBar, type Filters } from '@/widgets/filter-bar';
 import { ConfirmDialog } from '@/widgets/confirm-dialog';
-import { Button } from '@/shared/ui';
+import { Button, ListSkeleton, useToast } from '@/shared/ui';
 
 const PAGE_SIZE = 10;
 
@@ -20,6 +20,8 @@ export function ApplicationsPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [pendingDelete, setPendingDelete] = useState<string[] | null>(null);
   const [page, setPage] = useState(1);
+  const [deleting, setDeleting] = useState(false);
+  const toast = useToast();
 
   const counts = useMemo(() => {
     const base: Record<Platform | 'all', number> = {
@@ -133,7 +135,9 @@ export function ApplicationsPage() {
         )}
       </div>
 
-      {loading ? null : error ? (
+      {loading ? (
+        <ListSkeleton />
+      ) : error ? (
         <div className="border-t border-line py-20 text-center">
           <p className="text-[15px] font-semibold text-ink">기록을 불러오지 못했습니다.</p>
           <p className="mx-auto mt-2 max-w-[42ch] text-[13px] leading-relaxed text-mute">
@@ -152,7 +156,14 @@ export function ApplicationsPage() {
             onToggleAll={toggleAll}
             onDelete={(id) => setPendingDelete([id])}
           />
-          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onChange={(p) => {
+              setPage(p);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
         </>
       ) : (
         <div className="border-t border-line py-20 text-center">
@@ -162,6 +173,16 @@ export function ApplicationsPage() {
           <p className="mx-auto mt-2 max-w-[42ch] text-[13px] leading-relaxed text-mute">
             {applications.length === 0 ? '오늘 지원한 공고 하나부터 남겨보세요.' : '필터를 조금 넓히거나 조건을 초기화해 보세요.'}
           </p>
+          {applications.length === 0 ? (
+            <Button variant="primary" className="mt-5" onClick={() => navigate('/applications/new')}>
+              <PlusIcon className="h-4 w-4" aria-hidden="true" />
+              첫 지원 기록 남기기
+            </Button>
+          ) : (
+            <Button variant="outline" className="mt-5" onClick={() => setFilters(EMPTY_FILTERS)}>
+              필터 초기화
+            </Button>
+          )}
         </div>
       )}
 
@@ -169,12 +190,20 @@ export function ApplicationsPage() {
         open={pendingDelete !== null}
         title={`${pendingDelete?.length ?? 0}건의 지원 기록을 삭제할까요?`}
         description="삭제한 기록은 되돌릴 수 없습니다. 열람 여부와 메모도 함께 지워집니다."
-        onConfirm={() => {
-          if (pendingDelete) {
-            removeApplications(pendingDelete);
+        busy={deleting}
+        onConfirm={async () => {
+          if (!pendingDelete) return;
+          setDeleting(true);
+          try {
+            await removeApplications(pendingDelete);
             setSelected((prev) => prev.filter((id) => !pendingDelete.includes(id)));
+            toast.success(`${pendingDelete.length}건을 삭제했습니다.`);
+            setPendingDelete(null);
+          } catch {
+            toast.error('삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+          } finally {
+            setDeleting(false);
           }
-          setPendingDelete(null);
         }}
         onCancel={() => setPendingDelete(null)}
       />

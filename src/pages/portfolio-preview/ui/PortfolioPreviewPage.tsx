@@ -3,7 +3,7 @@ import { ArrowLeftIcon, DownloadIcon, FileWarningIcon } from 'lucide-react';
 import { useRecords } from '@/entities/application';
 import { isPdfFile } from '@/entities/file';
 import { DocumentViewer } from '@/widgets/document-viewer';
-import { Button } from '@/shared/ui';
+import { Button, Skeleton, buttonClass } from '@/shared/ui';
 import { dotDate, fileSize } from '@/shared/lib';
 
 /**
@@ -14,7 +14,16 @@ export function PortfolioPreviewPage() {
   const { files, loading, error, reload } = useRecords();
   const file = files.find((f) => f.id === id);
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div role="status" aria-label="불러오는 중">
+        <Skeleton className="h-4 w-28" />
+        <Skeleton className="mt-6 h-7 w-64 max-w-full" />
+        <Skeleton className="mt-3 h-3 w-48" />
+        <Skeleton className="mt-8 h-[60vh] w-full rounded-lg" />
+      </div>
+    );
+  }
 
   if (error) {
     return (
@@ -35,7 +44,7 @@ export function PortfolioPreviewPage() {
       <div className="py-24 text-center">
         <p className="text-[15px] font-semibold text-ink">파일을 찾을 수 없습니다.</p>
         <p className="mx-auto mt-2 max-w-[44ch] text-[13px] leading-relaxed text-mute">
-          업로드한 파일은 이 브라우저 세션에만 보관됩니다. 새로 고침했다면 다시 올려주세요.
+          삭제되었거나 주소가 잘못되었을 수 있습니다. 목록에서 다시 선택해 주세요.
         </p>
         <Link to="/portfolio" className="mt-4 inline-block text-[13px] text-primary underline underline-offset-4">
           포트폴리오 정리로 돌아가기
@@ -64,11 +73,9 @@ export function PortfolioPreviewPage() {
             {file.fileName} · {fileSize(file.size)} · {dotDate(file.uploadedAt)} 업로드
           </p>
         </div>
-        <a href={file.url} download={file.fileName}>
-          <Button variant="outline">
-            <DownloadIcon className="h-4 w-4" aria-hidden="true" />
-            원본 다운로드
-          </Button>
+        <a href={file.url} download={file.fileName} className={buttonClass('outline')}>
+          <DownloadIcon className="h-4 w-4" aria-hidden="true" />
+          원본 다운로드
         </a>
       </div>
 
@@ -82,11 +89,9 @@ export function PortfolioPreviewPage() {
             <p className="mx-auto mt-2 max-w-[44ch] text-[13px] leading-relaxed text-mute">
               원본을 내려받아 확인해 주세요. 제출용이라면 PDF로 변환해 다시 올려두는 편이 안전합니다.
             </p>
-            <a href={file.url} download={file.fileName} className="mt-5">
-              <Button variant="primary" size="sm">
-                <DownloadIcon className="h-4 w-4" aria-hidden="true" />
-                원본 다운로드
-              </Button>
+            <a href={file.url} download={file.fileName} className={`mt-5 ${buttonClass('primary', 'sm')}`}>
+              <DownloadIcon className="h-4 w-4" aria-hidden="true" />
+              원본 다운로드
             </a>
           </div>
         )}

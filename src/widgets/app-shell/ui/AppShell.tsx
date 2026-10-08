@@ -60,7 +60,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             aria-haspopup="menu"
                             className="flex items-center gap-2.5 rounded-md px-1.5 py-1.5 transition-colors duration-150 ease-out hover:bg-hover"
                         >
-                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primarySoft text-[13px] font-semibold text-primary">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-soft text-[13px] font-semibold text-primary">
                                 {user?.initial ?? "?"}
                             </span>
                             <span className="hidden text-left leading-tight sm:block">
@@ -81,7 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
                                 <div className="border-t border-line px-2 pb-1 pt-3">
                                     <p className="mb-2 text-2xs font-medium text-mute">테마</p>
-                                    <div className="flex gap-1 rounded-md bg-lineSoft p-1">
+                                    <div className="flex gap-1 rounded-md bg-line-soft p-1">
                                         {THEME_OPTIONS.map(({ value, label, Icon }) => {
                                             const active = mode === value
                                             return (
@@ -149,8 +149,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-16 pt-6 sm:px-6 sm:pt-8">{children}</main>
 
             <footer className="no-print border-t border-line px-4 py-4 sm:px-6">
-                <p className="mx-auto max-w-7x; text-2xs text-mute">
-                    JobLog · 대덕소프트웨어마이스터고 취업활동 기록 · 저장된 내용은 이 브라우저에만 보관됩니다.
+                <p className="mx-auto max-w-7xl text-2xs text-mute">
+                    JobLog · 대덕소프트웨어마이스터고 취업활동 기록
                 </p>
             </footer>
         </div>

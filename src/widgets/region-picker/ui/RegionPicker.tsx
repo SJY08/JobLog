@@ -18,6 +18,7 @@ export function RegionPicker({ value, onChange, id, invalid = false }: RegionPic
   const [results, setResults] = useState<Region[]>([]);
   const [loading, setLoading] = useState(false);
   const [cursor, setCursor] = useState(0);
+  const [failed, setFailed] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -26,12 +27,21 @@ export function RegionPicker({ value, onChange, id, invalid = false }: RegionPic
     let alive = true;
     setLoading(true);
     const t = window.setTimeout(() => {
-      searchRegions(query).then((rows) => {
-        if (!alive) return;
-        setResults(rows);
-        setCursor(0);
-        setLoading(false);
-      });
+      searchRegions(query)
+        .then((rows) => {
+          if (!alive) return;
+          setResults(rows);
+          setCursor(0);
+          setFailed(false);
+        })
+        .catch(() => {
+          if (!alive) return;
+          setResults([]);
+          setFailed(true);
+        })
+        .finally(() => {
+          if (alive) setLoading(false);
+        });
     }, 180);
     return () => {
       alive = false;
@@ -120,7 +130,9 @@ export function RegionPicker({ value, onChange, id, invalid = false }: RegionPic
         >
           {!loading && results.length === 0 && (
             <li className="px-3.5 py-3 text-[13px] text-mute">
-              검색 결과가 없습니다. 시 · 구 · 동 이름을 다시 확인해 주세요.
+              {failed
+                ? '지역을 불러오지 못했습니다. 잠시 후 다시 입력해 주세요.'
+                : '검색 결과가 없습니다. 시 · 구 · 동 이름을 다시 확인해 주세요.'}
             </li>
           )}
           {results.map((r, i) => (
