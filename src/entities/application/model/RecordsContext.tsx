@@ -5,6 +5,7 @@ import { SEED_COVER_LETTER } from '@/entities/cover-letter';
 import type { StoredFile } from '@/entities/file';
 import { api, uploadToSignedUrl } from '@/shared/api';
 import { today, uid } from '@/shared/lib';
+import { useToast } from '@/shared/ui';
 import type { Application } from './types';
 
 /**
@@ -50,6 +51,8 @@ interface RecordsValue {
   removeSection: (id: string) => void;
   moveSection: (id: string, dir: -1 | 1) => void;
   saveCoverLetter: () => Promise<void>;
+  coverLetterDirty: boolean;
+  discardCoverLetter: () => void;
 }
 
 const RecordsContext = createContext<RecordsValue | null>(null);
@@ -62,10 +65,12 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
   const [applications, setApplications] = useState<Application[]>([]);
   const [files, setFiles] = useState<StoredFile[]>([]);
   const [coverLetter, setCoverLetter] = useState<CoverLetter>(SEED_COVER_LETTER);
+  const [savedCoverLetter, setSavedCoverLetter] = useState<CoverLetter>(SEED_COVER_LETTER);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const fileTimers = useRef<Record<string, number>>({});
+  const toast = useToast();
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
@@ -75,6 +80,7 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
       setApplications([]);
       setFiles([]);
       setCoverLetter(SEED_COVER_LETTER);
+      setSavedCoverLetter(SEED_COVER_LETTER);
       setError(false);
       setLoading(false);
       return;
@@ -92,6 +98,7 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
         setApplications(appsRes.items);
         setFiles(filesRes);
         setCoverLetter(cl);
+        setSavedCoverLetter(cl);
       })
       .catch(() => {
         if (alive) setError(true);
@@ -145,9 +152,9 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
     setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f)));
     window.clearTimeout(fileTimers.current[id]);
     fileTimers.current[id] = window.setTimeout(() => {
-      api.patch(`/files/${id}`, patch).catch(() => {});
+      api.patch(`/files/${id}`, patch).catch(() => toast.error('파일 이름을 저장하지 못했습니다.'));
     }, 500);
-  }, []);
+  }, [toast]);
 
   const removeFile = useCallback(async (id: string) => {
     await api.del(`/files/${id}`);
@@ -194,7 +201,15 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
   const saveCoverLetter = useCallback(async () => {
     const saved = await api.put<CoverLetter>('/cover-letter', coverLetter);
     setCoverLetter(saved);
+    setSavedCoverLetter(saved);
   }, [coverLetter]);
+
+  const coverLetterDirty = useMemo(
+    () => JSON.stringify(coverLetter) !== JSON.stringify(savedCoverLetter),
+    [coverLetter, savedCoverLetter]
+  );
+
+  const discardCoverLetter = useCallback(() => setCoverLetter(savedCoverLetter), [savedCoverLetter]);
 
   const value = useMemo(
     () => ({
@@ -216,7 +231,9 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
       addSection,
       removeSection,
       moveSection,
-      saveCoverLetter
+      saveCoverLetter,
+      coverLetterDirty,
+      discardCoverLetter
     }),
     [
       applications,
@@ -237,7 +254,9 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
       addSection,
       removeSection,
       moveSection,
-      saveCoverLetter
+      saveCoverLetter,
+      coverLetterDirty,
+      discardCoverLetter
     ]
   );
 
