@@ -27,7 +27,7 @@ export default defineConfig({
                 name: "JobLog",
                 short_name: "JobLog",
                 start_url: "/",
-                theme_color: "#000000",
+                theme_color: "#ffffff",
                 background_color: "#ffffff",
                 display: "standalone",
                 icons: [
