@@ -40,10 +40,10 @@ export function ApplicationList({ rows, selected, onToggle, onToggleAll, onDelet
         {rows.map((row) => {
           const checked = selected.includes(row.id);
           return (
-            <li key={row.id} className="border-b border-lineSoft">
+            <li key={row.id} className="border-b border-line-soft">
               <div
                 className={`flex gap-3 rounded-lg px-3 py-4 transition-colors duration-150 ease-out ${
-                  checked ? 'bg-primarySoft' : 'hover:bg-hover'
+                  checked ? 'bg-primary-soft' : 'hover:bg-hover'
                 }`}
               >
                 <input
@@ -57,18 +57,20 @@ export function ApplicationList({ rows, selected, onToggle, onToggleAll, onDelet
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
                     {row.platform && (
-                      <span className="inline-flex items-center gap-1.5 text-2xs text-graphite">
-                        <span
-                          className="h-1.5 w-1.5 rounded-full"
-                          style={{ backgroundColor: PLATFORM_DOT[row.platform] }}
-                          aria-hidden="true"
-                        />
-                        {PLATFORM_LABEL[row.platform]}
-                      </span>
+                      <>
+                        <span className="inline-flex items-center gap-1.5 text-2xs text-graphite">
+                          <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{ backgroundColor: PLATFORM_DOT[row.platform] }}
+                            aria-hidden="true"
+                          />
+                          {PLATFORM_LABEL[row.platform]}
+                        </span>
+                        <span className="text-2xs text-line" aria-hidden="true">
+                          |
+                        </span>
+                      </>
                     )}
-                    <span className="text-2xs text-line" aria-hidden="true">
-                      |
-                    </span>
                     <span className={`text-2xs ${POSTING_STYLE[row.postingStatus]}`}>{row.postingStatus}</span>
                     <span className={`inline-block rounded border px-1.5 py-0.5 text-2xs ${APPLY_STYLE[row.applyStatus]}`}>
                       {row.applyStatus}
