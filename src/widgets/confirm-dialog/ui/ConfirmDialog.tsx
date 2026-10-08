@@ -5,6 +5,8 @@ interface ConfirmDialogProps {
   title: string;
   description?: string;
   confirmLabel?: string;
+  cancelLabel?: string;
+  busy?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -17,23 +19,25 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel = '삭제',
+  cancelLabel = '취소',
+  busy = false,
   onConfirm,
   onCancel
 }: ConfirmDialogProps) {
   return (
     <Modal
       open={open}
-      onClose={onCancel}
+      onClose={busy ? () => {} : onCancel}
       title={title}
       description={description}
       maxWidth="max-w-sm"
       footer={
         <>
-          <Button variant="ghost" onClick={onCancel}>
-            취소
+          <Button variant="ghost" onClick={onCancel} disabled={busy} autoFocus>
+            {cancelLabel}
           </Button>
-          <Button variant="danger" onClick={onConfirm}>
-            {confirmLabel}
+          <Button variant="danger" onClick={onConfirm} disabled={busy}>
+            {busy ? '처리 중…' : confirmLabel}
           </Button>
         </>
       }
