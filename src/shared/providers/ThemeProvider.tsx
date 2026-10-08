@@ -4,6 +4,8 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 
 const STORAGE_KEY = 'joblog-theme';
 
+const THEME_COLOR = { light: '#ffffff', dark: '#0e1116' } as const;
+
 interface ThemeValue {
   mode: ThemeMode;
   resolved: 'light' | 'dark';
@@ -47,6 +49,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const root = document.documentElement;
       root.classList.toggle('dark', next === 'dark');
       root.style.colorScheme = next;
+      // PWA 상단 상태바 색을 앱 배경색(--c-bg)과 맞춘다
+      document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
+        meta.removeAttribute('media');
+        meta.setAttribute('content', THEME_COLOR[next]);
+      });
     };
 
     apply();
