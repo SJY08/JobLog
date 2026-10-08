@@ -33,7 +33,7 @@ export function FilterBar({ filters, onChange, counts }: FilterBarProps) {
               onClick={() => set('platform', p.value as Filters['platform'])}
               className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3.5 py-2 text-[13px] transition-colors duration-150 ease-out ${
                 active
-                  ? 'border-primary bg-primarySoft font-semibold text-primary'
+                  ? 'border-primary bg-primary-soft font-semibold text-primary'
                   : 'border-line bg-surface text-graphite hover:bg-hover'
               }`}
             >
