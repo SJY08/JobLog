@@ -13,7 +13,7 @@ const POINTS = [
  * @description 로그인 페이지
  */
 export function LoginPage() {
-    const { user, signInWithGoogle, signingIn } = useAuth()
+    const { user, signInWithGoogle, signingIn, signInError } = useAuth()
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -73,6 +73,11 @@ export function LoginPage() {
                                 </>
                             )}
                         </button>
+                        {signInError && (
+                            <p role="alert" className="mt-3 text-[13px] leading-relaxed text-danger">
+                                {signInError}
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>
