@@ -2,7 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeftIcon, DownloadIcon, FileWarningIcon } from 'lucide-react';
 import { useRecords } from '@/entities/application';
 import { isPdfFile } from '@/entities/file';
-import { DocumentViewer } from '@/widgets/document-viewer';
+import { PdfViewer } from '@/widgets/file-preview';
 import { Button, Skeleton, buttonClass } from '@/shared/ui';
 import { dotDate, fileSize } from '@/shared/lib';
 
@@ -81,7 +81,7 @@ export function PortfolioPreviewPage() {
 
       <div className="mt-7">
         {isPdfFile(file) ? (
-          <DocumentViewer file={file} />
+          <PdfViewer file={file} />
         ) : (
           <div className="flex flex-col items-center rounded-lg border border-line bg-surface px-6 py-20 text-center">
             <FileWarningIcon className="h-7 w-7 text-mute" aria-hidden="true" />
