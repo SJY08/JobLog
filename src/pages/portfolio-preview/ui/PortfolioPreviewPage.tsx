@@ -1,8 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeftIcon, DownloadIcon, FileWarningIcon } from 'lucide-react';
+import { ArrowLeftIcon, DownloadIcon } from 'lucide-react';
 import { useRecords } from '@/entities/application';
-import { isPdfFile } from '@/entities/file';
-import { PdfViewer } from '@/widgets/file-preview';
+import { FilePreview } from '@/widgets/file-preview';
 import { Button, Skeleton, buttonClass } from '@/shared/ui';
 import { dotDate, fileSize } from '@/shared/lib';
 
@@ -80,21 +79,7 @@ export function PortfolioPreviewPage() {
       </div>
 
       <div className="mt-7">
-        {isPdfFile(file) ? (
-          <PdfViewer file={file} />
-        ) : (
-          <div className="flex flex-col items-center rounded-lg border border-line bg-surface px-6 py-20 text-center">
-            <FileWarningIcon className="h-7 w-7 text-mute" aria-hidden="true" />
-            <p className="mt-4 text-[15px] font-semibold text-ink">미리보기는 PDF 파일만 지원합니다.</p>
-            <p className="mx-auto mt-2 max-w-[44ch] text-[13px] leading-relaxed text-mute">
-              원본을 내려받아 확인해 주세요. 제출용이라면 PDF로 변환해 다시 올려두는 편이 안전합니다.
-            </p>
-            <a href={file.url} download={file.fileName} className={`mt-5 ${buttonClass('primary', 'sm')}`}>
-              <DownloadIcon className="h-4 w-4" aria-hidden="true" />
-              원본 다운로드
-            </a>
-          </div>
-        )}
+        <FilePreview file={file} />
       </div>
     </>
   );
