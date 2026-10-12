@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DownloadIcon, EyeIcon, FileTextIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useRecords } from '@/entities/application';
-import { FILE_KINDS, isPdfFile, type FileKind } from '@/entities/file';
+import { FILE_KINDS, type FileKind } from '@/entities/file';
 import { FileUploadModal } from '@/widgets/file-upload-modal';
+import { resolvePreviewStrategy } from '@/widgets/file-preview';
 import { ConfirmDialog } from '@/widgets/confirm-dialog';
 import { Button, IconButton, ListSkeleton, SelectInput, buttonClass, useToast } from '@/shared/ui';
 import { countChars, dotDate, fileSize, longDate } from '@/shared/lib';
@@ -138,7 +139,7 @@ export function PortfolioPage() {
                     </div>
 
                     <div className="flex shrink-0 items-center gap-0.5">
-                      {isPdfFile(file) && (
+                      {resolvePreviewStrategy(file).canPreview && (
                         <Link
                           to={`/portfolio/preview/${file.id}`}
                           aria-label={`${file.label} 미리보기`}
