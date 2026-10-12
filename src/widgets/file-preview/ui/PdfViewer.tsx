@@ -7,7 +7,7 @@ import { PdfPage } from "./PdfPage"
 import { usePdfDocument } from "../lib/usePdfDocument"
 import { renderPageToBitmap } from "../lib/pdfPageCache"
 
-interface DocumentViewerProps {
+interface PdfViewerProps {
     file: StoredFile
 }
 
@@ -23,7 +23,7 @@ const slideVariants = {
 /**
  * @description PDF 미리보기 뷰어 컴포넌트
  */
-export function DocumentViewer({ file }: DocumentViewerProps) {
+export function PdfViewer({ file }: PdfViewerProps) {
     const { doc, total, loading, error } = usePdfDocument(file.url)
     const [isWide, setIsWide] = useState(false)
     const [start, setStart] = useState(0)
